@@ -19,7 +19,7 @@
  */
 
 #include <Aquaduino.h>
-#include "SerialInput.h"
+#include "SerialAtlasPH.h"
 #include <Arduino.h>
 #include <SD.h>
 
@@ -39,10 +39,11 @@ void serialEvent3(){
   }
 }
 
+
 /**
  * \brief Constructor
  */
-SerialInput::SerialInput()
+SerialAtlasPH::SerialAtlasPH()
 {
     Serial3.begin(38400);
     m_Type = SENSOR_DIGITALINPUT;
@@ -54,18 +55,18 @@ SerialInput::SerialInput()
  *
  * \returns 1 if input is HIGH or 0 if input is LOW.
  */
-double SerialInput::read()
+double SerialAtlasPH::read()
 {
     return actualPH;
 }
 
-uint16_t SerialInput::serialize(void* buffer, uint16_t size)
+uint16_t SerialAtlasPH::serialize(void* buffer, uint16_t size)
 {
     memcpy(buffer, &m_Pin, sizeof(m_Pin));
     return sizeof(m_Pin);
 }
 
-uint16_t SerialInput::deserialize(void* data, uint16_t size)
+uint16_t SerialAtlasPH::deserialize(void* data, uint16_t size)
 {
     memcpy(&m_Pin, data, sizeof(m_Pin));
     pinMode(m_Pin, INPUT);
