@@ -26,7 +26,6 @@ private:
     void getAllActuators();
     void getActuatorData(uint8_t actuatorId);
     void setSensorConfig(uint8_t sensorId, uint8_t type, char* value);
-    void setSensorConfig(uint8_t sensorId, uint8_t type, bool visible);
     void setSensorConfig(uint8_t sensorId, uint8_t type, uint8_t value);
     uint8_t m_Buffer[50];
     uint16_t m_Port;

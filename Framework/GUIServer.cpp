@@ -74,10 +74,10 @@ void GUIServer::run() {
 				setSensorConfig(m_Buffer[2], m_Buffer[3], (char*) m_Buffer[4]);
 				break;
 			case 4:
-				setSensorConfig(m_Buffer[2], m_Buffer[3], m_Buffer[4]);
+				setSensorConfig(m_Buffer[2], m_Buffer[3], (uint8_t) m_Buffer[4]);
 				break;
 			case 5:
-				setSensorConfig(m_Buffer[2], m_Buffer[3], m_Buffer[4]);
+				setSensorConfig(m_Buffer[2], m_Buffer[3], (uint8_t) m_Buffer[4]);
 				break;
 			}
 			break;
@@ -182,7 +182,7 @@ void GUIServer::getActuatorData(uint8_t actuatorId) {
 	m_UdpServer.write((uint32_t) 1395867979);
 }
 
-void setSensorConfig(uint8_t sensorId, uint8_t type, char* value) {
+void GUIServer::setSensorConfig(uint8_t sensorId, uint8_t type, char* value) {
 	Sensor* sensor = __aquaduino->getSensor(sensorId);
 	if (type == 2) {
 		sensor->setName(value);
@@ -192,16 +192,14 @@ void setSensorConfig(uint8_t sensorId, uint8_t type, char* value) {
 	}
 	__aquaduino->writeConfig(sensor);
 }
-void setSensorConfig(uint8_t sensorId, uint8_t type, bool visible) {
-	Sensor* sensor = __aquaduino->getSensor(sensorId);
-	//sensor->setVisible(visible)
-	//__aquaduino->writeConfig(sensor);
-}
-void setSensorConfig(uint8_t sensorId, uint8_t type, uint8_t value) {
+void GUIServer::setSensorConfig(uint8_t sensorId, uint8_t type, uint8_t value) {
 	Sensor* sensor = __aquaduino->getSensor(sensorId);
 	if (type == 1) {
 		//sensor->resetOperatinHours();
 	}
+	if (type == 4) {
+			//sensor->setVisible(visible)
+		}
 	if (type == 5) {
 		//sensor->setCalibratioInterval(value)
 	}
