@@ -106,8 +106,8 @@ void GUIServer::getAllSensors()
         m_UdpServer.write(__aquaduino->getSensorID(sensor));
         m_UdpServer.write(sensor->getType());
         //
-        m_UdpServer.write(24);
-        m_UdpServer.write("unit not implemented yet");
+        m_UdpServer.write(strlen(sensor->getName()));
+        m_UdpServer.write(sensor->getName());
         //visible
         m_UdpServer.write(true);
         //calibrationInterval(days):int
@@ -172,9 +172,9 @@ void GUIServer::getActuatorData(uint8_t actuatorId)
         m_UdpServer.write((uint8_t) 0);
 
         //value:int
-        m_UdpServer.write((uint8_t) 0);
+        m_UdpServer.write(actuator->isOn());
         //operatingHours:int
-        m_UdpServer.write((uint8_t) 4010);
+        m_UdpServer.write((uint8_t) 0);
         //lastOperatingHoursReset:dateTime
         m_UdpServer.write((uint32_t) 1395867979);
         //lastCalibration:dateTime
