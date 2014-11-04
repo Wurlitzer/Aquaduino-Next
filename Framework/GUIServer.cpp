@@ -9,18 +9,27 @@
 #include <Framework/GUIServer.h>
 #include <Arduino.h>
 #include <Controller/ClockTimerController.h>
+#include <Controller/TemperatureController.h>
+#include <Controller/LevelController.h>
 
 enum {
-	GETVERSION = 0,
-	GETALLSENSORS = 1,
-	GETSENSORDATA = 2,
-	SETSENSORCONFIG = 3,
-	GETALLACTUATORS = 4,
-	GETACTUATORDATA = 5,
-	SETACTUATORDATA = 6,
-	SETACTUATORCONFIG = 7,
-	GETALLCONTROLLERS = 8,
-	GETCLOCKTIMERS = 9
+	GET_VERSION = 0,
+	GET_ALL_SENSORS = 1,
+	GET_SENSOR_DATA = 2,
+	SET_SENSOR_CONFIG = 3,
+	GET_ALL_ACTUATORS = 4,
+	GET_ACTUATOR_DATA = 5,
+	SET_ACTUATOR_DATA = 6,
+	SET_ACTUATOR_CONFIG = 7,
+	GET_ALL_CONTROLLERS = 8,
+	GET_CLOCK_TIMERS = 9,
+	SET_CLOCK_TIMER = 10,
+	GET_TEMPSENSORS_AT_PIN = 11,
+	SET_TEMPSENSOR_AT_PIN = 12,
+	GET_TEMPERATURE_CONTROLLER = 13,
+	SET_TEMPERATURE_CONTROLLER = 14,
+	GET_LEVEL_CONTROLLER = 15,
+	SET_LEVEL_CONTROLLER = 16
 };
 
 GUIServer::GUIServer(uint16_t port) {
@@ -65,17 +74,17 @@ void GUIServer::run() {
 
 		//switch to method
 		switch (m_Buffer[1]) {
-		case GETVERSION:
+		case GET_VERSION:
 			m_UdpServer.write((uint8_t) 0);
 			m_UdpServer.write(1);
 			break;
-		case GETALLSENSORS:
+		case GET_ALL_SENSORS:
 			getAllSensors();
 			break;
-		case GETSENSORDATA:
-			getSensorData(m_Buffer[2]);
+		case GET_SENSOR_DATA:
+			getSensorData (m_Buffer[2]);
 			break;
-		case SETSENSORCONFIG:
+		case SET_SENSOR_CONFIG:
 			switch (m_Buffer[3]) {
 			case 1:
 			case 4:
@@ -89,17 +98,17 @@ void GUIServer::run() {
 				break;
 			}
 			break;
-		case GETALLACTUATORS:
+		case GET_ALL_ACTUATORS:
 			getAllActuators();
 			break;
-		case GETACTUATORDATA:
+		case GET_ACTUATOR_DATA:
 			getActuatorData(m_Buffer[2]);
 			break;
-		case SETACTUATORDATA:
+		case SET_ACTUATOR_DATA:
 			setActuatorData(m_Buffer[2], m_Buffer[3], (uint8_t) m_Buffer[4],
 					(uint8_t) m_Buffer[5]);
 			break;
-		case SETACTUATORCONFIG:
+		case SET_ACTUATOR_CONFIG:
 			/*1=resetOperatingHours       int     1
 			 2=actuatorName              String  max 24 chars
 			 3=InfluenceBitmask          int     (32 Sources)
@@ -134,11 +143,20 @@ void GUIServer::run() {
 				break;
 			}
 			break;
-		case GETALLCONTROLLERS:
+		case GET_ALL_CONTROLLERS:
 			getAllControllers();
 			break;
-		case GETCLOCKTIMERS:
+		case GET_CLOCK_TIMERS:
 			getClockTimers(m_Buffer[2]);
+			break;
+		case SET_CLOCK_TIMER:
+			setClockTimer(m_Buffer[2]);
+			break;
+		case GET_TEMPERATURE_CONTROLLER:
+			getTemperatureController(m_Buffer[2]);
+			break;
+		case GET_LEVEL_CONTROLLER:
+			getLevelController(m_Buffer[2]);
 			break;
 		default:
 			break;
@@ -148,19 +166,20 @@ void GUIServer::run() {
 
 }
 
-union {
-	unsigned long position;
-	unsigned char bytes[4];
-} CurrentPosition;
+/*union {
+ unsigned long position;
+ unsigned char bytes[4];
+ } CurrentPosition;
 
-void GUIServer::write(uint32_t value, EthernetUDP* udpServer) {
-	CurrentPosition.position = value;
-	m_UdpServer.write(CurrentPosition.bytes[0]);
-	m_UdpServer.write(CurrentPosition.bytes[1]);
-	m_UdpServer.write(CurrentPosition.bytes[2]);
-	m_UdpServer.write(CurrentPosition.bytes[3]);
-}
-
+ void GUIServer::write(uint32_t value, EthernetUDP* udpServer) {
+ CurrentPosition.position = value;
+ m_UdpServer.write(CurrentPosition.bytes[0]);
+ m_UdpServer.write(CurrentPosition.bytes[1]);
+ m_UdpServer.write(CurrentPosition.bytes[2]);
+ m_UdpServer.write(CurrentPosition.bytes[3]);
+ }*/
+//size_t EthernetUDP::write(const uint8_t *buffer, size_t size)
+//size_t EthernetUDP::write(uint8_t byte)
 void GUIServer::getAllSensors() {
 	//errorcode 0
 	m_UdpServer.write((uint8_t) 0);
@@ -202,37 +221,38 @@ void GUIServer::getSensorData(uint8_t sensorId) {
 		m_UdpServer.write(sensorId);
 
 		//valueAct:float * 1000 -> uint32
-		write((uint32_t) 7654321, &m_UdpServer);
-		//write((uint32_t) __aquaduino->getSensorValue(sensorId) * 1000,&m_UdpServer);
+		//write((uint32_t) (__aquaduino->getSensorValue(sensorId) * 1000),&m_UdpServer);
+		uint32_t tmp = __aquaduino->getSensorValue(sensorId) * 1000;
+		m_UdpServer.write((uint8_t*) &tmp, sizeof(int32_t));
 
 		//valueMax24h:float * 1000 -> uint32
-		write((uint32_t) 1234567, &m_UdpServer);
-		//uint32_t valueMax24h = 65.8;
-		//m_UdpServer.write((uint32_t)123);
+		tmp = 9050;
+		m_UdpServer.write((uint8_t*) &tmp, sizeof(int32_t));
 
 		//valueMax24hTime:time
-		//m_UdpServer.write((uint32_t) 1395867979);
-		write((uint32_t) 1412928610, &m_UdpServer);
+		tmp = 1415112618;
+		m_UdpServer.write((uint8_t*) &tmp, sizeof(int32_t));
 
 		//valueMin24h:float * 1000-> uint32
-		//m_UdpServer.write((uint32_t) 4010);
-		write((uint32_t) 12345, &m_UdpServer);
+		tmp = 7950;
+		m_UdpServer.write((uint8_t*) &tmp, sizeof(int32_t));
 
 		//valueMin24hTime:time
-		//m_UdpServer.write((uint32_t) 1395867579);
-		write((uint32_t) 1412928610, &m_UdpServer);
+		tmp = 1415112618;
+		m_UdpServer.write((uint8_t*) &tmp, sizeof(int32_t));
 
 		//lastCalibration:dateTime
-		//m_UdpServer.write((uint32_t) 1395867579);
-		write((uint32_t) 1412928610, &m_UdpServer);
+		tmp = 1415112618;
+		m_UdpServer.write((uint8_t*) &tmp, sizeof(int32_t));
 
 		//operatingHours:int
-		//m_UdpServer.write((uint8_t) 13);
-		m_UdpServer.write((uint8_t) 10);
+		tmp = 500;
+		m_UdpServer.write((uint8_t*) &tmp, sizeof(int32_t));
 
 		//lastOperatingHoursReset
-		//m_UdpServer.write((uint32_t) 1395867979);
-		write((uint32_t) 1412928610, &m_UdpServer);
+		tmp = 1415112618;
+		m_UdpServer.write((uint8_t*) &tmp, sizeof(int32_t));
+
 	} else {
 		//errorcode 10 -> sensor not available
 		m_UdpServer.write((uint8_t) 10);
@@ -423,10 +443,12 @@ void GUIServer::setActuatorData(uint8_t actuatorId, uint8_t locked, uint8_t on,
 		if (pwm) {
 			actuator->setPWM(pwm);
 		}
-		Serial.print("SetActuatorData [locked][data]: ");
-		Serial.print(locked);
-		Serial.print(" ");
-		Serial.println(on);
+		__aquaduino->writeConfig(actuator);
+		/*
+		 Serial.print("SetActuatorData [locked][data]: ");
+		 Serial.print(locked);
+		 Serial.print(" ");
+		 Serial.println(on);*/
 	} else {
 		//errorcode 10 -> actuator not available
 		m_UdpServer.write((uint8_t) 10);
@@ -453,37 +475,6 @@ void GUIServer::getAllControllers() {
 		m_UdpServer.write(controller->getType());
 	}
 }
-/*
- void GUIServer::getClockTimers(uint8_t controllerId) {
- //stimmt das? oder muss ich durch iterieren?
- Controller* controller = __aquaduino->getController(controllerId)
-
- //num of timers
- m_UdpServer.write((uint8_t) controller->getNrOfTimers());
- //num of timers per timer
- m_UdpServer.write((uint8_t) CLOCKTIMER_MAX_TIMERS);
- ClockTimer* timer;
- controller->resetClockTimerIterator();
- while (controller->getNextClockTimer(&timer) != -1) {
- m_UdpServer.write(controller->getClockTimerID(timer));
- for (i = 0; i < CLOCKTIMER_MAX_TIMERS; i++) {
- m_UdpServer.write(timer->getHourOn(i));
- m_UdpServer.write(timer->getMinuteOn()(i));
- m_UdpServer.write(timer->getSecondOn(i));
- m_UdpServer.write(timer->getHourOff(i));
- m_UdpServer.write(timer->getMinuteOff()(i));
- m_UdpServer.write(timer->getSecondOff(i));
- }
- m_UdpServer.write(timer->isMondayEnabled());
- m_UdpServer.write(timer->isTuesdayEnabled());
- m_UdpServer.write(timer->isWednesdayEnabled());
- m_UdpServer.write(timer->isThursdayEnabled());
- m_UdpServer.write(timer->isFridayEnabled());
- m_UdpServer.write(timer->isSaturdayEnabled());
- m_UdpServer.write(timer->isSundayEnabled());
- //es fehlt der zugewiesene Actuator
- }
- }*/
 /*
  void GUIServer::setSerialPHConfig(uint8_t sensorId,uint8_t) {
  Sensor* sensor = __aquaduino->getSensor(sensorId);
@@ -513,6 +504,8 @@ void GUIServer::getClockTimers(uint8_t controllerId) {
 	}
 	//errorcode 0
 	m_UdpServer.write((uint8_t) 0);
+	//controllerId
+	m_UdpServer.write((uint8_t) controllerId);
 	//num of timers
 	m_UdpServer.write((uint8_t) MAX_CLOCKTIMERS);
 	//num of timers per timer
@@ -524,7 +517,7 @@ void GUIServer::getClockTimers(uint8_t controllerId) {
 		timer = controller->getClockTimer(i);
 		//ClockTimerId
 		m_UdpServer.write(i);
-		j=0;
+		j = 0;
 		while (j < CLOCKTIMER_MAX_TIMERS) {
 			m_UdpServer.write((uint8_t) timer->getHourOn(j));
 			m_UdpServer.write((uint8_t) timer->getMinuteOn(j));
@@ -538,4 +531,99 @@ void GUIServer::getClockTimers(uint8_t controllerId) {
 		m_UdpServer.write(controller->getAssignedActuatorID(i));
 		i++;
 	}
+}
+void GUIServer::setClockTimer(uint8_t controllerId) {
+	ClockTimerController* controller;
+	ClockTimer* timer;
+	if (__aquaduino->getController(controllerId)->getType()
+			== CONTROLLER_CLOCKTIMER) {
+		controller = (ClockTimerController*) __aquaduino->getController(
+				controllerId);
+	} else {
+		//errorcode 10
+		m_UdpServer.write((uint8_t) 10);
+		return;
+	}
+	if (controller->getClockTimer(m_Buffer[3])) {
+		timer = controller->getClockTimer(m_Buffer[3]);
+	} else {
+		//errorcode 11
+		m_UdpServer.write((uint8_t) 11);
+		return;
+	}
+	int j = 0;
+	while (j < CLOCKTIMER_MAX_TIMERS) {
+		timer->setTimer(j, m_Buffer[4 + j * CLOCKTIMER_MAX_TIMERS],
+				m_Buffer[5 + j * CLOCKTIMER_MAX_TIMERS],
+				m_Buffer[6 + j * CLOCKTIMER_MAX_TIMERS],
+				m_Buffer[7 + j * CLOCKTIMER_MAX_TIMERS]);
+		j++;
+	}
+	timer->setDaysEnabled(m_Buffer[8 + j * CLOCKTIMER_MAX_TIMERS]);
+	controller->assignActuatorToClockTimer(controllerId,
+			m_Buffer[9 + j * CLOCKTIMER_MAX_TIMERS]);
+	__aquaduino->writeConfig(controller);
+	//errorcode 0
+	m_UdpServer.write((uint8_t) 0);
+
+	return;
+}
+void GUIServer::getTemperatureController(uint8_t controllerId) {
+	TemperatureController* controller;
+	if (__aquaduino->getController(controllerId)->getType()
+			== CONTROLLER_TEMPERATURE) {
+		controller = (TemperatureController*) __aquaduino->getController(
+				controllerId);
+	} else {
+		//errorcode 10
+		m_UdpServer.write((uint8_t) 10);
+		return;
+	}
+	//errorcode 0
+	m_UdpServer.write((uint8_t) 0);
+}
+
+void GUIServer::getLevelController(uint8_t controllerId) {
+	LevelController* controller;
+	if (__aquaduino->getController(controllerId)->getType()
+			== CONTROLLER_LEVEL) {
+		controller = (LevelController*) __aquaduino->getController(
+				controllerId);
+	} else {
+		//errorcode 10
+		m_UdpServer.write((uint8_t) 10);
+		return;
+	}
+	//errorcode 0
+	m_UdpServer.write((uint8_t) 0);
+	uint16_t tmp = controller->getDelayHigh();
+	m_UdpServer.write((uint8_t*) &tmp, sizeof(int16_t));
+	tmp = controller->getDelayLow();
+	m_UdpServer.write((uint8_t*) &tmp, sizeof(int16_t));
+	tmp = controller->getTimeout();
+	m_UdpServer.write((uint8_t*) &tmp, sizeof(int16_t));
+	m_UdpServer.write(controller->getAssignedSensor());
+}
+void GUIServer::setLevelController(uint8_t controllerId) {
+	LevelController* controller;
+	if (__aquaduino->getController(controllerId)->getType()
+			== CONTROLLER_LEVEL) {
+		controller = (LevelController*) __aquaduino->getController(
+				controllerId);
+	} else {
+		//errorcode 10
+		m_UdpServer.write((uint8_t) 10);
+		return;
+	}
+	controller->setDelayHigh(*((int16_t*) &m_Buffer[3]));
+	controller->setDelayLow(*((int16_t*) &m_Buffer[5]));
+	controller->setTimeout(*((int16_t*) &m_Buffer[7]));
+	controller->assignSensor(m_Buffer[9]);
+	if (m_Buffer[10]) {
+		controller->reset();
+	}
+	controller->setName((char*) &m_Buffer[11]);
+	__aquaduino->writeConfig(controller);
+	//errorcode 0
+	m_UdpServer.write((uint8_t) 0);
 }
