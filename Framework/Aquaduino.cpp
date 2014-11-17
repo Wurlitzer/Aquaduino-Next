@@ -75,40 +75,30 @@ extern int freeRam();
  * them. Finally the network is brought up.
  */
 Aquaduino::Aquaduino() :
-        m_IP(192, 168, 1, 222),
-        m_Netmask(255, 255, 255, 0),
-        m_DNSServer(192, 168, 1, 1),
-        m_Gateway(192, 168, 1, 1),
-        m_NTPServer(192, 53, 103, 108),
-        m_Timezone(TIME_ZONE),
-        m_NTPSyncInterval(5),
-        m_DHCP(0),
-        m_NTP(0),
-        m_Xively(0),
-        m_Controllers(MAX_CONTROLLERS),
-        m_Actuators(MAX_ACTUATORS),
-        m_Sensors(MAX_SENSORS),
-        m_XivelyClient(ethClient)
-{
-    __aquaduino = this;
-    m_Type = AQUADUINO;
+		m_IP(192, 168, 1, 222), m_Netmask(255, 255, 255, 0), m_DNSServer(192,
+				168, 1, 1), m_Gateway(192, 168, 1, 1), m_NTPServer(192, 53, 103,
+				108), m_Timezone(TIME_ZONE), m_NTPSyncInterval(5), m_DHCP(0), m_NTP(
+				0), m_Xively(0), m_Controllers(MAX_CONTROLLERS), m_Actuators(
+		MAX_ACTUATORS), m_Sensors(MAX_SENSORS), m_XivelyClient(ethClient) {
+	__aquaduino = this;
+	m_Type = AQUADUINO;
 
-    initPeripherals();
+	initPeripherals();
 	Serial.print(F("Startup Free Ram: "));
 	Serial.println(freeRam());
 
-    //ToDo: Buggy!
-    m_ConfigManager = new SDConfigManager();
-    readConfig(this);
+	//ToDo: Buggy!
+	m_ConfigManager = new SDConfigManager();
+	readConfig(this);
 
-    initNetwork();
-    initXively();
+	initNetwork();
+	initXively();
 
 #ifdef INTERRUPT_DRIVEN
-    Serial.println("Interrupt triggered mode enabled.");
-    startTimer();
+	Serial.println("Interrupt triggered mode enabled.");
+	startTimer();
 #else
-    Serial.println("Software triggered mode enabled.");
+	Serial.println("Software triggered mode enabled.");
 #endif
 
 }
@@ -119,40 +109,39 @@ Aquaduino::Aquaduino() :
  *
  */
 
-void Aquaduino::initPeripherals(){
+void Aquaduino::initPeripherals() {
 
 	//Init Serial Port
 	Serial.begin(115200);
 
-    // Deselect all SPI devices!
-    pinMode(4, OUTPUT);
-    digitalWrite(4, HIGH);
-    pinMode(10, OUTPUT);
-    digitalWrite(10, HIGH);
+	// Deselect all SPI devices!
+	pinMode(4, OUTPUT);
+	digitalWrite(4, HIGH);
+	pinMode(10, OUTPUT);
+	digitalWrite(10, HIGH);
 
-    //Initializing SD slot
-    if (!SD.begin(4))
-    {
-        Serial.println(F("No SD Card available"));
-        while (1)
-            ;
-    }
+	//Initializing SD slot
+	if (!SD.begin(4)) {
+		Serial.println(F("No SD Card available"));
+		while (1)
+			;
+	}
 
-    //Setting the PWM frequencies to 31.25kHz
+	//Setting the PWM frequencies to 31.25kHz
 	Serial.println(F("Initializing PWM frequency to 31.25 kHz..."));
-    TCCR1A = _BV(WGM11) | _BV(WGM10);
-    TCCR1B = _BV(CS10);
-    TCCR2A = _BV(WGM21) | _BV(WGM20);
-    TCCR2B = _BV(CS20);
-    TCCR3A = _BV(WGM31) | _BV(WGM30);
-    TCCR3B = _BV(CS30);
-    TCCR4A = _BV(WGM41) | _BV(WGM40);
-    TCCR4B = _BV(CS40);
-    TCCR5A = _BV(WGM51) | _BV(WGM50);
-    TCCR5B = _BV(CS50);
+	TCCR1A = _BV(WGM11) | _BV(WGM10);
+	TCCR1B = _BV(CS10);
+	TCCR2A = _BV(WGM21) | _BV(WGM20);
+	TCCR2B = _BV(CS20);
+	TCCR3A = _BV(WGM31) | _BV(WGM30);
+	TCCR3B = _BV(CS30);
+	TCCR4A = _BV(WGM41) | _BV(WGM40);
+	TCCR4B = _BV(CS40);
+	TCCR5A = _BV(WGM51) | _BV(WGM50);
+	TCCR5B = _BV(CS50);
 
-    Serial.println(F("Initializing OneWire Handler..."));
-    m_OneWireHandler = new OneWireHandler();
+	Serial.println(F("Initializing OneWire Handler..."));
+	m_OneWireHandler = new OneWireHandler();
 }
 
 /**
@@ -161,54 +150,50 @@ void Aquaduino::initPeripherals(){
  *
  */
 
-void Aquaduino::initNetwork()
-{
+void Aquaduino::initNetwork() {
 	int8_t status = 0;
 
-    m_MAC[0] = 0xDE;
-    m_MAC[1] = 0xAD;
-    m_MAC[2] = 0xBE;
-    m_MAC[3] = 0xEF;
-    m_MAC[4] = 0xDE;
-    m_MAC[5] = 0xAD;
+	m_MAC[0] = 0xDE;
+	m_MAC[1] = 0xAD;
+	m_MAC[2] = 0xBE;
+	m_MAC[3] = 0xEF;
+	m_MAC[4] = 0xDE;
+	m_MAC[5] = 0xAD;
 
-    if (m_DHCP)
-    {
-        Serial.println(F("Waiting for DHCP reply..."));
-        status = Ethernet.begin(m_MAC);
-    }
-    if (!m_DHCP || !status)
-    {
-        Serial.println(F("Using static network configuration..."));
-        Ethernet.begin(m_MAC, m_IP, m_DNSServer, m_Gateway, m_Netmask);
-    }
+	if (m_DHCP) {
+		Serial.println(F("Waiting for DHCP reply..."));
+		status = Ethernet.begin(m_MAC);
+	}
+	if (!m_DHCP || !status) {
+		Serial.println(F("Using static network configuration..."));
+		Ethernet.begin(m_MAC, m_IP, m_DNSServer, m_Gateway, m_Netmask);
+	}
 
-    m_IP = Ethernet.localIP();
-    m_DNSServer = Ethernet.dnsServerIP();
-    m_Gateway = Ethernet.gatewayIP();
-    m_Netmask = Ethernet.subnetMask();
+	m_IP = Ethernet.localIP();
+	m_DNSServer = Ethernet.dnsServerIP();
+	m_Gateway = Ethernet.gatewayIP();
+	m_Netmask = Ethernet.subnetMask();
 
-    Serial.print(F("IP: "));
-    Serial.println(m_IP);
-    Serial.print(F("Netmask: "));
-    Serial.println(m_Netmask);
-    Serial.print(F("Gateway: "));
-    Serial.println(m_Gateway);
-    Serial.print(F("DNS Server: "));
-    Serial.println(m_DNSServer);
-    Serial.print(F("NTP Server: "));
-    Serial.println(m_NTPServer);
+	Serial.print(F("IP: "));
+	Serial.println(m_IP);
+	Serial.print(F("Netmask: "));
+	Serial.println(m_Netmask);
+	Serial.print(F("Gateway: "));
+	Serial.println(m_Gateway);
+	Serial.print(F("DNS Server: "));
+	Serial.println(m_DNSServer);
+	Serial.print(F("NTP Server: "));
+	Serial.println(m_NTPServer);
 
-    //Init Time. If NTP Sync fails this will be used.
-    setTime(0, 0, 0, 1, 1, 2013);
+	//Init Time. If NTP Sync fails this will be used.
+	setTime(0, 0, 0, 1, 1, 2013);
 
-    if (isNTPEnabled())
-    {
-        Serial.println(F("Syncing time using NTP..."));
-        enableNTP();
-    }
+	if (isNTPEnabled()) {
+		Serial.println(F("Syncing time using NTP..."));
+		enableNTP();
+	}
 
-    m_GUIServer = new GUIServer(4242);
+	m_GUIServer = new GUIServer(4242);
 }
 
 /**
@@ -218,10 +203,9 @@ void Aquaduino::initNetwork()
  * This method only stores the value in the object. It does not
  * configure the network.
  */
-void Aquaduino::setMAC(uint8_t* mac)
-{
-    for (int i = 0; i < 6; i++)
-        m_MAC[i] = mac[i];
+void Aquaduino::setMAC(uint8_t* mac) {
+	for (int i = 0; i < 6; i++)
+		m_MAC[i] = mac[i];
 }
 
 /**
@@ -230,10 +214,9 @@ void Aquaduino::setMAC(uint8_t* mac)
  *
  * \returns Configured MAC address. May be different to active MAC!
  */
-void Aquaduino::getMAC(uint8_t* mac)
-{
-    for (int i = 0; i < 6; i++)
-        mac[i] = m_MAC[i];
+void Aquaduino::getMAC(uint8_t* mac) {
+	for (int i = 0; i < 6; i++)
+		mac[i] = m_MAC[i];
 }
 
 /**
@@ -241,9 +224,8 @@ void Aquaduino::getMAC(uint8_t* mac)
  *
  * \returns Configured IP address. May be different to active IP!
  */
-IPAddress* Aquaduino::getIP()
-{
-    return &m_IP;
+IPAddress* Aquaduino::getIP() {
+	return &m_IP;
 }
 
 /**
@@ -254,9 +236,8 @@ IPAddress* Aquaduino::getIP()
  * configure the network.
  */
 
-void Aquaduino::setIP(IPAddress* ip)
-{
-    m_IP = *ip;
+void Aquaduino::setIP(IPAddress* ip) {
+	m_IP = *ip;
 }
 
 /**
@@ -265,9 +246,8 @@ void Aquaduino::setIP(IPAddress* ip)
  * \returns Configured netmask. May be different to active netmask!
  */
 
-IPAddress* Aquaduino::getNetmask()
-{
-    return &m_Netmask;
+IPAddress* Aquaduino::getNetmask() {
+	return &m_Netmask;
 }
 
 /**
@@ -277,9 +257,8 @@ IPAddress* Aquaduino::getNetmask()
  * \brief This method only stores the value in the object. It does not
  * configure the network.
  */
-void Aquaduino::setNetmask(IPAddress* netmask)
-{
-    m_Netmask = *netmask;
+void Aquaduino::setNetmask(IPAddress* netmask) {
+	m_Netmask = *netmask;
 }
 
 /**
@@ -289,9 +268,8 @@ void Aquaduino::setNetmask(IPAddress* netmask)
  * address!
  */
 
-IPAddress* Aquaduino::getGateway()
-{
-    return &m_Gateway;
+IPAddress* Aquaduino::getGateway() {
+	return &m_Gateway;
 }
 
 /**
@@ -302,9 +280,8 @@ IPAddress* Aquaduino::getGateway()
  * configure the network.
  */
 
-void Aquaduino::setGateway(IPAddress* gateway)
-{
-    m_Gateway = *gateway;
+void Aquaduino::setGateway(IPAddress* gateway) {
+	m_Gateway = *gateway;
 }
 
 /**
@@ -313,9 +290,8 @@ void Aquaduino::setGateway(IPAddress* gateway)
  * \returns Configured DNS server address. May be different to active DNS
  * server address!
  */
-IPAddress* Aquaduino::getDNS()
-{
-    return &m_DNSServer;
+IPAddress* Aquaduino::getDNS() {
+	return &m_DNSServer;
 }
 
 /**
@@ -325,9 +301,8 @@ IPAddress* Aquaduino::getDNS()
  * This method only stores the value in the object. It does not
  * configure the network.
  */
-void Aquaduino::setDNS(IPAddress* dns)
-{
-    m_DNSServer = *dns;
+void Aquaduino::setDNS(IPAddress* dns) {
+	m_DNSServer = *dns;
 }
 
 /**
@@ -335,9 +310,8 @@ void Aquaduino::setDNS(IPAddress* dns)
  *
  * \returns Configured NTP server address.
  */
-IPAddress* Aquaduino::getNTP()
-{
-    return &m_NTPServer;
+IPAddress* Aquaduino::getNTP() {
+	return &m_NTPServer;
 }
 
 /**
@@ -347,9 +321,8 @@ IPAddress* Aquaduino::getNTP()
  * This method only stores the value in the object. It does not
  * trigger a NTP update.
  */
-void Aquaduino::setNTP(IPAddress* ntp)
-{
-    m_NTPServer = *ntp;
+void Aquaduino::setNTP(IPAddress* ntp) {
+	m_NTPServer = *ntp;
 }
 
 /**
@@ -357,9 +330,8 @@ void Aquaduino::setNTP(IPAddress* ntp)
  *
  * \returns NTP synchronization interval in minutes.
  */
-uint16_t Aquaduino::getNtpSyncInterval()
-{
-    return m_NTPSyncInterval;
+uint16_t Aquaduino::getNtpSyncInterval() {
+	return m_NTPSyncInterval;
 }
 
 /**
@@ -370,19 +342,16 @@ uint16_t Aquaduino::getNtpSyncInterval()
  * trigger a NTP update.
  */
 
-void Aquaduino::setNtpSyncInterval(uint16_t syncInterval)
-{
-    m_NTPSyncInterval = syncInterval;
+void Aquaduino::setNtpSyncInterval(uint16_t syncInterval) {
+	m_NTPSyncInterval = syncInterval;
 }
 
-void Aquaduino::setTimezone(int8_t zone)
-{
-    this->m_Timezone = zone;
+void Aquaduino::setTimezone(int8_t zone) {
+	this->m_Timezone = zone;
 }
 
-int8_t Aquaduino::getTimezone()
-{
-    return this->m_Timezone;
+int8_t Aquaduino::getTimezone() {
+	return this->m_Timezone;
 }
 
 /**
@@ -392,9 +361,8 @@ int8_t Aquaduino::getTimezone()
  * a DHCP request is performed.
  */
 
-void Aquaduino::enableDHCP()
-{
-    m_DHCP = 1;
+void Aquaduino::enableDHCP() {
+	m_DHCP = 1;
 }
 
 /**
@@ -406,9 +374,8 @@ void Aquaduino::enableDHCP()
  * manager stores the values set by setIP, setNetmask, setGateway and
  * setDNS when they are updated using the configuration WebInterface.
  */
-void Aquaduino::disableDHCP()
-{
-    m_DHCP = 0;
+void Aquaduino::disableDHCP() {
+	m_DHCP = 0;
 }
 
 /**
@@ -416,9 +383,8 @@ void Aquaduino::disableDHCP()
  *
  * \returns Value of the DHCP flag.
  */
-int8_t Aquaduino::isDHCPEnabled()
-{
-    return m_DHCP;
+int8_t Aquaduino::isDHCPEnabled() {
+	return m_DHCP;
 }
 
 /**
@@ -428,11 +394,10 @@ int8_t Aquaduino::isDHCPEnabled()
  * The NTP synchronization interval is set to the value set by
  * setNtpSyncInterval.
  */
-void Aquaduino::enableNTP()
-{
-    m_NTP = 1;
-    setSyncInterval(m_NTPSyncInterval * 60);
-    setSyncProvider(&::NTPSync);
+void Aquaduino::enableNTP() {
+	m_NTP = 1;
+	setSyncInterval(m_NTPSyncInterval * 60);
+	setSyncProvider(&::NTPSync);
 }
 
 /**
@@ -440,11 +405,10 @@ void Aquaduino::enableNTP()
  *
  * Disables the NTP synchronization and leaves current time untouched.
  */
-void Aquaduino::disableNTP()
-{
-    m_NTP = 0;
-    setSyncInterval(m_NTPSyncInterval * 60);
-    setSyncProvider(NULL);
+void Aquaduino::disableNTP() {
+	m_NTP = 0;
+	setSyncInterval(m_NTPSyncInterval * 60);
+	setSyncProvider(NULL);
 }
 
 /**
@@ -452,9 +416,8 @@ void Aquaduino::disableNTP()
  *
  * \returns Value of the NTP flag.
  */
-int8_t Aquaduino::isNTPEnabled()
-{
-    return m_NTP;
+int8_t Aquaduino::isNTPEnabled() {
+	return m_NTP;
 }
 
 /**
@@ -470,10 +433,9 @@ int8_t Aquaduino::isNTPEnabled()
  * update will be performed.
  */
 void Aquaduino::setTime(int8_t hour, int8_t minute, int8_t second, int8_t day,
-                        int8_t month, int16_t year)
-{
-    if (!m_NTP)
-        ::setTime(hour, minute, second, day, month, year);
+		int8_t month, int16_t year) {
+	if (!m_NTP)
+		::setTime(hour, minute, second, day, month, year);
 }
 
 /**
@@ -483,28 +445,24 @@ void Aquaduino::setTime(int8_t hour, int8_t minute, int8_t second, int8_t day,
  * Xively channels will be send to Xively.
  */
 
-void Aquaduino::initXively()
-{
-    Serial.print(F("Xively API Key: "));
-    Serial.println(m_XivelyAPIKey);
+void Aquaduino::initXively() {
+	Serial.print(F("Xively API Key: "));
+	Serial.println(m_XivelyAPIKey);
 
-    Serial.print(F("Xively Feed: "));
-    Serial.println(m_XivelyFeedName);
-    Serial.println(F("Xively Channels:"));
-    for (uint8_t i = 0; i < getNrOfSensors(); i++)
-    {
-        Serial.print(i);
-        Serial.print(":");
-        Serial.println(m_XivelyChannelNames[i]);
-        m_XiveleyDatastreams[i] =
-                new XivelyDatastream(m_XivelyChannelNames[i],
-                                     strlen(m_XivelyChannelNames[i]),
-                                     DATASTREAM_FLOAT);
-    }
+	Serial.print(F("Xively Feed: "));
+	Serial.println(m_XivelyFeedName);
+	Serial.println(F("Xively Channels:"));
+	for (uint8_t i = 0; i < getNrOfSensors(); i++) {
+		Serial.print(i);
+		Serial.print(":");
+		Serial.println(m_XivelyChannelNames[i]);
+		m_XiveleyDatastreams[i] = new XivelyDatastream(m_XivelyChannelNames[i],
+				strlen(m_XivelyChannelNames[i]),
+				DATASTREAM_FLOAT);
+	}
 
-    m_XivelyFeed = new XivelyFeed(atol(m_XivelyFeedName),
-                                  m_XiveleyDatastreams,
-                                  getNrOfSensors());
+	m_XivelyFeed = new XivelyFeed(atol(m_XivelyFeedName), m_XiveleyDatastreams,
+			getNrOfSensors());
 }
 
 /**
@@ -514,18 +472,16 @@ void Aquaduino::initXively()
  * Xively channels will be send to Xively.
  */
 
-void Aquaduino::enableXively()
-{
-    m_Xively = 1;
+void Aquaduino::enableXively() {
+	m_Xively = 1;
 }
 
 /**
  * \brief Disables Xively flag.
  *
  */
-void Aquaduino::disableXively()
-{
-    m_Xively = 0;
+void Aquaduino::disableXively() {
+	m_Xively = 0;
 }
 
 /**
@@ -533,28 +489,23 @@ void Aquaduino::disableXively()
  *
  * \returns Value of the Xively flag.
  */
-int8_t Aquaduino::isXivelyEnabled()
-{
-    return m_Xively;
+int8_t Aquaduino::isXivelyEnabled() {
+	return m_Xively;
 }
 
-void Aquaduino::setXivelyApiKey(const char* key)
-{
-    strcpy(m_XivelyAPIKey, key);
+void Aquaduino::setXivelyApiKey(const char* key) {
+	strcpy(m_XivelyAPIKey, key);
 }
-const char* Aquaduino::getXivelyApiKey()
-{
-    return m_XivelyAPIKey;
+const char* Aquaduino::getXivelyApiKey() {
+	return m_XivelyAPIKey;
 }
 
-void Aquaduino::setXivelyFeed(const char* feed)
-{
-    strcpy(m_XivelyFeedName, feed);
+void Aquaduino::setXivelyFeed(const char* feed) {
+	strcpy(m_XivelyFeedName, feed);
 }
 
-const char* Aquaduino::getXivelyFeed()
-{
-    return m_XivelyFeedName;
+const char* Aquaduino::getXivelyFeed() {
+	return m_XivelyFeedName;
 }
 
 /**
@@ -571,19 +522,16 @@ const char* Aquaduino::getXivelyFeed()
  * \returns Index of the controller in the ArrayList m_Controllers. When the
  * operation fails -1 is returned.
  */
-int8_t Aquaduino::addController(Controller* newController)
-{
-    char buffer[5] =
-        { 0 };
+int8_t Aquaduino::addController(Controller* newController) {
+	char buffer[5] = { 0 };
 
-    int8_t idx = m_Controllers.add(newController);
-    if (idx != -1)
-    {
-        buffer[0] = 'C';
-        itoa(idx, &buffer[1], 10);
-        m_Controllers[idx]->setURL(buffer);
-    }
-    return idx;
+	int8_t idx = m_Controllers.add(newController);
+	if (idx != -1) {
+		buffer[0] = 'C';
+		itoa(idx, &buffer[1], 10);
+		m_Controllers[idx]->setURL(buffer);
+	}
+	return idx;
 }
 
 /**
@@ -592,9 +540,8 @@ int8_t Aquaduino::addController(Controller* newController)
  *
  * \returns controller object stored at position idx. Can be NULL.
  */
-Controller* Aquaduino::getController(unsigned int idx)
-{
-    return m_Controllers.get(idx);
+Controller* Aquaduino::getController(unsigned int idx) {
+	return m_Controllers.get(idx);
 }
 
 /**
@@ -604,9 +551,8 @@ Controller* Aquaduino::getController(unsigned int idx)
  * \returns the index in m_Controllers if the object is stored in there. If
  * that is not the case -1 is returned.
  */
-int8_t Aquaduino::getControllerID(Controller* controller)
-{
-    return m_Controllers.findElement(controller);
+int8_t Aquaduino::getControllerID(Controller* controller) {
+	return m_Controllers.findElement(controller);
 }
 
 /**
@@ -614,9 +560,8 @@ int8_t Aquaduino::getControllerID(Controller* controller)
  *
  * The iterator is placed to the first slot in m_Controllers.
  */
-void Aquaduino::resetControllerIterator()
-{
-    m_Controllers.resetIterator();
+void Aquaduino::resetControllerIterator() {
+	m_Controllers.resetIterator();
 }
 
 /**
@@ -628,9 +573,8 @@ void Aquaduino::resetControllerIterator()
  * in the ArrayList. This method delegates the call to the method of the
  * ArrayList.
  */
-int8_t Aquaduino::getNextController(Controller** controller)
-{
-    return m_Controllers.getNext(controller);
+int8_t Aquaduino::getNextController(Controller** controller) {
+	return m_Controllers.getNext(controller);
 }
 
 /**
@@ -638,9 +582,8 @@ int8_t Aquaduino::getNextController(Controller** controller)
  *
  * \returns the number of assigned controllers.
  */
-unsigned char Aquaduino::getNrOfControllers()
-{
-    return m_Controllers.getNrOfElements();
+unsigned char Aquaduino::getNrOfControllers() {
+	return m_Controllers.getNrOfElements();
 }
 
 /**
@@ -657,19 +600,16 @@ unsigned char Aquaduino::getNrOfControllers()
  * \returns Index of the actuator in the ArrayList m_Actuators. When the
  * operation fails -1 is returned.
  */
-int8_t Aquaduino::addActuator(Actuator* newActuator)
-{
-    char buffer[5] =
-        { 0 };
+int8_t Aquaduino::addActuator(Actuator* newActuator) {
+	char buffer[5] = { 0 };
 
-    int8_t idx = m_Actuators.add(newActuator);
-    if (idx != -1)
-    {
-        buffer[0] = 'A';
-        itoa(idx, &buffer[1], 10);
-        newActuator->setURL(buffer);
-    }
-    return idx;
+	int8_t idx = m_Actuators.add(newActuator);
+	if (idx != -1) {
+		buffer[0] = 'A';
+		itoa(idx, &buffer[1], 10);
+		newActuator->setURL(buffer);
+	}
+	return idx;
 }
 
 /**
@@ -678,9 +618,8 @@ int8_t Aquaduino::addActuator(Actuator* newActuator)
  *
  * \returns actuator object stored at position idx. Can be NULL.
  */
-Actuator* Aquaduino::getActuator(unsigned int idx)
-{
-    return m_Actuators.get(idx);
+Actuator* Aquaduino::getActuator(unsigned int idx) {
+	return m_Actuators.get(idx);
 }
 
 /**
@@ -690,9 +629,8 @@ Actuator* Aquaduino::getActuator(unsigned int idx)
  * \returns the index in m_Actuators if the object is stored in there. If
  * that is not the case -1 is returned.
  */
-int8_t Aquaduino::getActuatorID(Actuator* actuator)
-{
-    return m_Actuators.findElement(actuator);
+int8_t Aquaduino::getActuatorID(Actuator* actuator) {
+	return m_Actuators.findElement(actuator);
 }
 
 /**
@@ -700,9 +638,8 @@ int8_t Aquaduino::getActuatorID(Actuator* actuator)
  *
  * The iterator is placed to the first slot in m_Actuators.
  */
-void Aquaduino::resetActuatorIterator()
-{
-    m_Actuators.resetIterator();
+void Aquaduino::resetActuatorIterator() {
+	m_Actuators.resetIterator();
 }
 
 /**
@@ -716,9 +653,8 @@ void Aquaduino::resetActuatorIterator()
  *
  * \returns the index of the next actuator.
  */
-int8_t Aquaduino::getNextActuator(Actuator** actuator)
-{
-    return m_Actuators.getNext(actuator);
+int8_t Aquaduino::getNextActuator(Actuator** actuator) {
+	return m_Actuators.getNext(actuator);
 }
 
 /**
@@ -731,25 +667,22 @@ int8_t Aquaduino::getNextActuator(Actuator** actuator)
  * returns the number of assigned actuators.
  */
 int8_t Aquaduino::getAssignedActuators(Controller* controller,
-                                       Actuator** actuators, int8_t max)
-{
-    int8_t actuatorIdx = -1;
-    int8_t nrOfAssignedActuators = 0;
-    Actuator* currentActuator;
-    int8_t controllerIdx = m_Controllers.findElement(controller);
+		Actuator** actuators, int8_t max) {
+	int8_t actuatorIdx = -1;
+	int8_t nrOfAssignedActuators = 0;
+	Actuator* currentActuator;
+	int8_t controllerIdx = m_Controllers.findElement(controller);
 
-    for (actuatorIdx = 0; actuatorIdx < MAX_ACTUATORS; actuatorIdx++)
-    {
-        currentActuator = m_Actuators.get(actuatorIdx);
-        if (currentActuator && currentActuator->getController()
-                == controllerIdx)
-        {
-            if (nrOfAssignedActuators < max)
-                actuators[nrOfAssignedActuators] = currentActuator;
-            nrOfAssignedActuators++;
-        }
-    }
-    return nrOfAssignedActuators;
+	for (actuatorIdx = 0; actuatorIdx < MAX_ACTUATORS; actuatorIdx++) {
+		currentActuator = m_Actuators.get(actuatorIdx);
+		if (currentActuator
+				&& currentActuator->getController() == controllerIdx) {
+			if (nrOfAssignedActuators < max)
+				actuators[nrOfAssignedActuators] = currentActuator;
+			nrOfAssignedActuators++;
+		}
+	}
+	return nrOfAssignedActuators;
 }
 
 /**
@@ -766,26 +699,23 @@ int8_t Aquaduino::getAssignedActuators(Controller* controller,
  * returns the number of assigned actuators.
  */
 int8_t Aquaduino::getAssignedActuatorIDs(Controller* controller,
-                                         int8_t* actuatorIDs, int8_t max)
-{
-    int8_t actuatorIdx = -1;
-    int8_t nrOfAssignedActuators = 0;
-    Actuator* currentActuator;
-    int8_t controllerIdx = m_Controllers.findElement(controller);
+		int8_t* actuatorIDs, int8_t max) {
+	int8_t actuatorIdx = -1;
+	int8_t nrOfAssignedActuators = 0;
+	Actuator* currentActuator;
+	int8_t controllerIdx = m_Controllers.findElement(controller);
 
-    //m_Actuators.resetIterator();
-    for (actuatorIdx = 0; actuatorIdx < MAX_ACTUATORS; actuatorIdx++)
-    {
-        currentActuator = m_Actuators.get(actuatorIdx);
-        if (currentActuator && currentActuator->getController()
-                == controllerIdx)
-        {
-            if (nrOfAssignedActuators < max)
-                actuatorIDs[nrOfAssignedActuators] = actuatorIdx;
-            nrOfAssignedActuators++;
-        }
-    }
-    return nrOfAssignedActuators;
+	//m_Actuators.resetIterator();
+	for (actuatorIdx = 0; actuatorIdx < MAX_ACTUATORS; actuatorIdx++) {
+		currentActuator = m_Actuators.get(actuatorIdx);
+		if (currentActuator
+				&& currentActuator->getController() == controllerIdx) {
+			if (nrOfAssignedActuators < max)
+				actuatorIDs[nrOfAssignedActuators] = actuatorIdx;
+			nrOfAssignedActuators++;
+		}
+	}
+	return nrOfAssignedActuators;
 }
 
 /**
@@ -793,61 +723,50 @@ int8_t Aquaduino::getAssignedActuatorIDs(Controller* controller,
  *
  * \returns the number of assigned actuators.
  */
-unsigned char Aquaduino::getNrOfActuators()
-{
-    return m_Actuators.getNrOfElements();
+unsigned char Aquaduino::getNrOfActuators() {
+	return m_Actuators.getNrOfElements();
 }
 
-int8_t Aquaduino::addSensor(Sensor* newSensor)
-{
-    char buffer[5] =
-        { 0 };
+int8_t Aquaduino::addSensor(Sensor* newSensor) {
+	char buffer[5] = { 0 };
 
-    int8_t idx = m_Sensors.add(newSensor);
-    if (idx != -1)
-    {
-        buffer[0] = 'S';
-        itoa(idx, &buffer[1], 10);
-        newSensor->setURL(buffer);
-    }
-    return idx;
+	int8_t idx = m_Sensors.add(newSensor);
+	if (idx != -1) {
+		buffer[0] = 'S';
+		itoa(idx, &buffer[1], 10);
+		newSensor->setURL(buffer);
+	}
+	return idx;
 }
 
-Sensor* Aquaduino::getSensor(unsigned int sensor)
-{
-    return m_Sensors[sensor];
+Sensor* Aquaduino::getSensor(unsigned int sensor) {
+	return m_Sensors[sensor];
 }
 
-int8_t Aquaduino::getSensorID(Sensor* sensor)
-{
-    return m_Sensors.findElement(sensor);
+int8_t Aquaduino::getSensorID(Sensor* sensor) {
+	return m_Sensors.findElement(sensor);
 }
 
-void Aquaduino::resetSensorIterator()
-{
-    m_Sensors.resetIterator();
+void Aquaduino::resetSensorIterator() {
+	m_Sensors.resetIterator();
 }
 
-int8_t Aquaduino::getNextSensor(Sensor** sensor)
-{
-    return m_Sensors.getNext(sensor);
+int8_t Aquaduino::getNextSensor(Sensor** sensor) {
+	return m_Sensors.getNext(sensor);
 }
 
-unsigned char Aquaduino::getNrOfSensors()
-{
-    return m_Sensors.getNrOfElements();
+unsigned char Aquaduino::getNrOfSensors() {
+	return m_Sensors.getNrOfElements();
 }
 
-double Aquaduino::getSensorValue(int8_t idx)
-{
-    if (idx >= 0 && idx < MAX_SENSORS)
-        return m_SensorReadings[idx];
-    return 0;
+double Aquaduino::getSensorValue(int8_t idx) {
+	if (idx >= 0 && idx < MAX_SENSORS)
+		return m_SensorReadings[idx];
+	return 0;
 }
 
-OneWireHandler* Aquaduino::getOneWireHandler()
-{
-    return m_OneWireHandler;
+OneWireHandler* Aquaduino::getOneWireHandler() {
+	return m_OneWireHandler;
 }
 
 /*
@@ -855,13 +774,11 @@ OneWireHandler* Aquaduino::getOneWireHandler()
  */
 
 const uint16_t Aquaduino::m_Size = sizeof(m_MAC) + sizeof(uint32_t)
-                                   + sizeof(uint32_t) + sizeof(uint32_t)
-                                   + sizeof(uint32_t) + sizeof(uint32_t)
-                                   + sizeof(m_NTPSyncInterval) + sizeof(m_DHCP)
-                                   + sizeof(m_NTP) + sizeof(m_Timezone)
-                                   + sizeof(m_Xively) + sizeof(m_XivelyAPIKey)
-                                   + sizeof(m_XivelyFeed)
-                                   + sizeof(m_XivelyChannelNames);
+		+ sizeof(uint32_t) + sizeof(uint32_t) + sizeof(uint32_t)
+		+ sizeof(uint32_t) + sizeof(m_NTPSyncInterval) + sizeof(m_DHCP)
+		+ sizeof(m_NTP) + sizeof(m_Timezone) + sizeof(m_Xively)
+		+ sizeof(m_XivelyAPIKey) + sizeof(m_XivelyFeed)
+		+ sizeof(m_XivelyChannelNames);
 
 /**
  * \brief Serializes the Aquaduino configuration
@@ -874,9 +791,8 @@ const uint16_t Aquaduino::m_Size = sizeof(m_MAC) + sizeof(uint32_t)
  * \returns amount of data serialized in bytes. Returns 0 if serialization
  * failed.
  */
-uint16_t Aquaduino::serialize(Stream* s)
-{
-    return 0;
+uint16_t Aquaduino::serialize(Stream* s) {
+	return 0;
 }
 
 /**
@@ -889,246 +805,241 @@ uint16_t Aquaduino::serialize(Stream* s)
  * \returns amount of data deserialized in bytes. Returns 0 if deserialization
  * failed.
  */
-uint16_t Aquaduino::deserialize(Stream* s)
-{
+uint16_t Aquaduino::deserialize(Stream* s) {
 
-    uint16_t stringLength = 0;
-    uint16_t xivelyFeedNameLength = 0;
-    uint16_t xivelyApiKeyLength = 0;
-    uint16_t xivelyChannelNameLength = 0;
-    uint16_t nrOfActuators = 0;
-    uint16_t nrOfControllers = 0;
-    uint16_t nrOfSensors = 0;
-    uint16_t calculatedSize = 0;
-    uint16_t i = 0;
-    uint16_t size = s->available();
+	uint16_t stringLength = 0;
+	uint16_t xivelyFeedNameLength = 0;
+	uint16_t xivelyApiKeyLength = 0;
+	uint16_t xivelyChannelNameLength = 0;
+	uint16_t nrOfActuators = 0;
+	uint16_t nrOfControllers = 0;
+	uint16_t nrOfSensors = 0;
+	uint16_t calculatedSize = 0;
+	uint16_t i = 0;
+	uint16_t size = s->available();
 
-    memset(m_XivelyAPIKey, 0, sizeof(m_XivelyAPIKey));
-    memset(m_XivelyFeedName, 0, sizeof(m_XivelyFeedName));
-    memset(m_XiveleyDatastreams, 0, sizeof(m_XiveleyDatastreams));
-    memset(m_XivelyChannelNames, 0, sizeof(m_XivelyChannelNames));
+	memset(m_XivelyAPIKey, 0, sizeof(m_XivelyAPIKey));
+	memset(m_XivelyFeedName, 0, sizeof(m_XivelyFeedName));
+	memset(m_XiveleyDatastreams, 0, sizeof(m_XiveleyDatastreams));
+	memset(m_XivelyChannelNames, 0, sizeof(m_XivelyChannelNames));
 
-    if (size >= 7)
-    {
-        stringLength = s->read();
-        xivelyFeedNameLength = s->read();
-        xivelyApiKeyLength = s->read();
-        xivelyChannelNameLength = s->read();
-        nrOfActuators = s->read();
-        nrOfControllers = s->read();
-        nrOfSensors = s->read();
-    }
+	if (size >= 7) {
+		stringLength = s->read();
+		xivelyFeedNameLength = s->read();
+		xivelyApiKeyLength = s->read();
+		xivelyChannelNameLength = s->read();
+		nrOfActuators = s->read();
+		nrOfControllers = s->read();
+		nrOfSensors = s->read();
+	}
 
-    // See Main.java in Aquaduino-Config for calculation
-    calculatedSize = 7
-            + ((nrOfActuators + nrOfControllers + nrOfSensors) * stringLength)
-            + (3 * nrOfActuators) + nrOfControllers + (2 * nrOfSensors)
-            + (nrOfSensors * xivelyChannelNameLength) + 6 + 1 + 4 + 4 + 4 + 1
-            + 4 + 1 + 1 + 1 + xivelyApiKeyLength + xivelyFeedNameLength;
+	// See Main.java in Aquaduino-Config for calculation
+	calculatedSize = 7
+			+ ((nrOfActuators + nrOfControllers + nrOfSensors) * stringLength)
+			+ (3 * nrOfActuators) + nrOfControllers + (2 * nrOfSensors)
+			+ (nrOfSensors * xivelyChannelNameLength) + 6 + 1 + 4 + 4 + 4 + 1
+			+ 4 + 1 + 1 + 1 + xivelyApiKeyLength + xivelyFeedNameLength;
 
-    if ((calculatedSize != size) || (stringLength != AQUADUINO_STRING_LENGTH)
-        || (xivelyFeedNameLength != XIVELY_FEED_NAME_LENGTH)
-        || (xivelyApiKeyLength != XIVELY_API_KEY_LENGTH)
-        || (xivelyChannelNameLength != XIVELY_CHANNEL_NAME_LENGTH)
-        || (nrOfActuators > MAX_ACTUATORS)
-        || (nrOfControllers > MAX_CONTROLLERS) || (nrOfSensors > MAX_SENSORS))
-    {
-        Serial.println(F("Invalid configuration file size!"));
-        Serial.print(calculatedSize);
-        Serial.print("?=");
-        Serial.println(size);
-    }
+	if ((calculatedSize != size) || (stringLength != AQUADUINO_STRING_LENGTH)
+			|| (xivelyFeedNameLength != XIVELY_FEED_NAME_LENGTH)
+			|| (xivelyApiKeyLength != XIVELY_API_KEY_LENGTH)
+			|| (xivelyChannelNameLength != XIVELY_CHANNEL_NAME_LENGTH)
+			|| (nrOfActuators > MAX_ACTUATORS)
+			|| (nrOfControllers > MAX_CONTROLLERS)
+			|| (nrOfSensors > MAX_SENSORS)) {
+		Serial.println(F("Invalid configuration file size!"));
+		Serial.print(calculatedSize);
+		Serial.print("?=");
+		Serial.println(size);
+	}
 
-    for (i = 0; i < nrOfActuators; i++)
-    {
+	for (i = 0; i < nrOfActuators; i++) {
 
-        char name[stringLength];
-        s->readBytes(name, stringLength);
-        uint8_t typeId = s->read();
-        uint8_t portId = s->read();
-        uint8_t onValue = s->read();
-        Actuator* actuator;
-        int8_t idx;
+		char name[stringLength];
+		s->readBytes(name, stringLength);
+		uint8_t typeId = s->read();
+		uint8_t portId = s->read();
+		uint8_t onValue = s->read();
+		Actuator* actuator;
+		int8_t idx;
 
-        switch(typeId){
-        case 1:
-            Serial.print(F("Adding Digitaloutput actuator @  Pin: "));
-            Serial.print(portId);
-            Serial.print(" On @ ");
-            Serial.print(onValue == 1 ? 1 : 0);
-            Serial.print(" Off @ ");
-            Serial.println(onValue == 1 ? 0 : 1);
-            actuator = new DigitalOutput(name, onValue == 1 ? 1 : 0, onValue == 1 ? 0 : 1);
-            ((DigitalOutput*) actuator)->setPin(portId);
-            break;
-        default:
-            actuator = NULL;
-            break;
-        }
+		switch (typeId) {
+		case 1:
+			Serial.print(F("Adding Digitaloutput actuator @  Pin: "));
+			Serial.print(portId);
+			Serial.print(" On @ ");
+			Serial.print(onValue == 1 ? 1 : 0);
+			Serial.print(" Off @ ");
+			Serial.println(onValue == 1 ? 0 : 1);
+			actuator = new DigitalOutput(name, onValue == 1 ? 1 : 0,
+					onValue == 1 ? 0 : 1);
+			((DigitalOutput*) actuator)->setPin(portId);
+			break;
+		default:
+			actuator = NULL;
+			break;
+		}
 
-        if ( (actuator != NULL) && (idx = __aquaduino->addActuator(actuator)) != -1)
-        {
-            readConfig(actuator);
-        }
-    }
+		if ((actuator != NULL)
+				&& (idx = __aquaduino->addActuator(actuator)) != -1) {
+			readConfig(actuator);
+		}
+	}
 
-    for (i = 0; i < nrOfControllers; i++)
-    {
+	for (i = 0; i < nrOfControllers; i++) {
 
-    	char name[stringLength];
-    	s->readBytes(name, stringLength);
-        uint8_t typeId = s->read();
-        Controller* controller;
-        int8_t idx;
+		char name[stringLength];
+		s->readBytes(name, stringLength);
+		uint8_t typeId = s->read();
+		Controller* controller;
+		int8_t idx;
 
-        switch(typeId){
-        case 1:
-            controller = new LevelController(name);
-            break;
-        case 2:
-            controller = new TemperatureController(name);
-            break;
-        case 3:
-            controller = new ClockTimerController(name);
-            break;
-        default:
-            controller = NULL;
-            break;
-        }
+		switch (typeId) {
+		case 1:
+			controller = new LevelController(name);
+			break;
+		case 2:
+			controller = new TemperatureController(name);
+			break;
+		case 3:
+			controller = new ClockTimerController(name);
+			break;
+		default:
+			controller = NULL;
+			break;
+		}
 
-        if ( (controller != NULL) && (idx = __aquaduino->addController(controller)) != -1)
-        {
-            readConfig(controller);
-        }
-    }
+		if ((controller != NULL)
+				&& (idx = __aquaduino->addController(controller)) != -1) {
+			readConfig(controller);
+		}
+	}
 
-    for (i = 0; i < nrOfSensors; i++)
-    {
+	for (i = 0; i < nrOfSensors; i++) {
 
-    	char name[stringLength];
-    	char xivelyChannel[xivelyChannelNameLength];
-    	s->readBytes(name, stringLength);
-        uint8_t typeId = s->read();
-        uint8_t portId = s->read();
-        s->readBytes(xivelyChannel, xivelyChannelNameLength);
-        Sensor* sensor;
-        int8_t idx;
+		char name[stringLength];
+		char xivelyChannel[xivelyChannelNameLength];
+		s->readBytes(name, stringLength);
+		uint8_t typeId = s->read();
+		uint8_t portId = s->read();
+		s->readBytes(xivelyChannel, xivelyChannelNameLength);
+		Sensor* sensor;
+		int8_t idx;
 
-        switch(typeId){
-        case 1:
-            sensor = new DigitalInput();
-            ((DigitalInput*) sensor)->setPin(portId);
-            ((DigitalInput*) sensor)->setName(name);
-            break;
-        case 2:
-            sensor = new DS18S20();
-            ((DS18S20*) sensor)->setPin(portId);
-            ((DS18S20*) sensor)->setName(name);
-            m_OneWireHandler->addPin(portId);
-            break;
-        case 3:
-            sensor = new SerialAtlasPH();
-            ((SerialAtlasPH*) sensor)->setName(name);
-            break;
-        case 4:
-            sensor = new SerialAtlasEC();
-            ((SerialAtlasEC*) sensor)->setName(name);
-            break;
-        case 5:
-            sensor = new SerialAtlasORP();
-            ((SerialAtlasORP*) sensor)->setName(name);
-            break;
-        default:
-            sensor = NULL;
-            break;
-        }
+		switch (typeId) {
+		case 1:
+			sensor = new DigitalInput();
+			((DigitalInput*) sensor)->setPin(portId);
+			((DigitalInput*) sensor)->setName(name);
+			break;
+		case 2:
+			sensor = new DS18S20();
+			((DS18S20*) sensor)->setPin(portId);
+			((DS18S20*) sensor)->setName(name);
+			m_OneWireHandler->addPin(portId);
+			break;
+		case 3:
+			sensor = new SerialAtlasPH();
+			((SerialAtlasPH*) sensor)->setName(name);
+			break;
+		case 4:
+			sensor = new SerialAtlasEC();
+			((SerialAtlasEC*) sensor)->setName(name);
+			break;
+		case 5:
+			sensor = new SerialAtlasORP();
+			((SerialAtlasORP*) sensor)->setName(name);
+			break;
+		default:
+			sensor = NULL;
+			break;
+		}
 
-        if ( (sensor != NULL) && (idx = __aquaduino->addSensor(sensor)) != -1)
-        {
-            memcpy(m_XivelyChannelNames[idx], xivelyChannel, xivelyChannelNameLength);
-            readConfig(sensor);
-        }
-    }
-    s->readBytes((char*)m_MAC, sizeof(m_MAC));
-    Serial.print(F("MAC: "));
-    for (uint8_t i = 0; i < sizeof(m_MAC); i++){
-        Serial.print(m_MAC[i], HEX);
-        if (i != sizeof(m_MAC)-1)
-            Serial.print(":");
-    }
-    Serial.println();
+		if ((sensor != NULL) && (idx = __aquaduino->addSensor(sensor)) != -1) {
+			memcpy(m_XivelyChannelNames[idx], xivelyChannel,
+					xivelyChannelNameLength);
+			readConfig(sensor);
+		}
+	}
+	s->readBytes((char*) m_MAC, sizeof(m_MAC));
+	Serial.print(F("MAC: "));
+	for (uint8_t i = 0; i < sizeof(m_MAC); i++) {
+		Serial.print(m_MAC[i], HEX);
+		if (i != sizeof(m_MAC) - 1)
+			Serial.print(":");
+	}
+	Serial.println();
 
-    s->readBytes((char*)&m_DHCP, sizeof(m_DHCP));
-    Serial.print(F("DHCP: "));
-    Serial.println(m_DHCP);
+	s->readBytes((char*) &m_DHCP, sizeof(m_DHCP));
+	Serial.print(F("DHCP: "));
+	Serial.println(m_DHCP);
 
-    Serial.print(F("IP: "));
-    for (int i = 0; i < 4; i++){
-    	m_IP[i]= s->read();
-        Serial.print(m_IP[i]);
-        if (i != 3)
-            Serial.print(".");
+	Serial.print(F("IP: "));
+	for (int i = 0; i < 4; i++) {
+		m_IP[i] = s->read();
+		Serial.print(m_IP[i]);
+		if (i != 3)
+			Serial.print(".");
 
-    }
-    Serial.println();
+	}
+	Serial.println();
 
-    Serial.print(F("Netmask: "));
-    for (int i = 0; i < 4; i++){
-    	m_Netmask[i] = s->read();
-        Serial.print(m_Netmask[i]);
-        if (i != 3)
-            Serial.print(".");
+	Serial.print(F("Netmask: "));
+	for (int i = 0; i < 4; i++) {
+		m_Netmask[i] = s->read();
+		Serial.print(m_Netmask[i]);
+		if (i != 3)
+			Serial.print(".");
 
-    }
-    Serial.println();
+	}
+	Serial.println();
 
-    Serial.print(F("Gateway: "));
-    for (int i = 0; i < 4; i++){
-    	m_Gateway[i] = s->read();
-        Serial.print(m_Gateway[i]);
-        if (i != 3)
-            Serial.print(".");
+	Serial.print(F("Gateway: "));
+	for (int i = 0; i < 4; i++) {
+		m_Gateway[i] = s->read();
+		Serial.print(m_Gateway[i]);
+		if (i != 3)
+			Serial.print(".");
 
-    }
-    Serial.println();
+	}
+	Serial.println();
 
-    s->readBytes((char*)&m_NTP, 1);
-    Serial.print(F("NTP: "));
-    Serial.println(m_NTP);
+	s->readBytes((char*) &m_NTP, 1);
+	Serial.print(F("NTP: "));
+	Serial.println(m_NTP);
 
+	Serial.print(F("NTP Server: "));
+	for (int i = 0; i < 4; i++) {
+		m_NTPServer[i] = s->read();
+		Serial.print(m_NTPServer[i]);
+		if (i != 3)
+			Serial.print(".");
 
-    Serial.print(F("NTP Server: "));
-    for (int i = 0; i < 4; i++){
-    	m_NTPServer[i] = s->read();
-        Serial.print(m_NTPServer[i]);
-        if (i != 3)
-            Serial.print(".");
-
-    }
-    Serial.println();
+	}
+	Serial.println();
 
 	//ToDo: Inconsistent to Aquaduino-Config
-    s->readBytes((char*)&m_NTPSyncInterval, 1);
-    Serial.print(F("NTP Sync Interval: "));
-    Serial.println(m_NTPSyncInterval);
+	s->readBytes((char*) &m_NTPSyncInterval, 1);
+	Serial.print(F("NTP Sync Interval: "));
+	Serial.println(m_NTPSyncInterval);
 
-    s->readBytes((char*)&m_Timezone, sizeof(m_Timezone));
-    Serial.print(F("Timezone: "));
-    Serial.println(m_Timezone);
+	s->readBytes((char*) &m_Timezone, sizeof(m_Timezone));
+	Serial.print(F("Timezone: "));
+	Serial.println(m_Timezone);
 
-    s->readBytes((char*)&m_Xively, sizeof(m_Xively));
-    Serial.print(F("Xively: "));
-    Serial.println(m_Xively);
+	s->readBytes((char*) &m_Xively, sizeof(m_Xively));
+	Serial.print(F("Xively: "));
+	Serial.println(m_Xively);
 
-    s->readBytes((char*)&m_XivelyAPIKey, sizeof(m_XivelyAPIKey));
-    Serial.print(F("Xively API Key: "));
-    Serial.println(m_XivelyAPIKey);
+	s->readBytes((char*) &m_XivelyAPIKey, sizeof(m_XivelyAPIKey));
+	Serial.print(F("Xively API Key: "));
+	Serial.println(m_XivelyAPIKey);
 
-    s->readBytes((char*)&m_XivelyFeedName, sizeof(m_XivelyFeedName));
-    Serial.print(F("Xively Feed Name: "));
-    Serial.println(m_XivelyFeedName);
+	s->readBytes((char*) &m_XivelyFeedName, sizeof(m_XivelyFeedName));
+	Serial.print(F("Xively Feed Name: "));
+	Serial.println(m_XivelyFeedName);
 
-    return size;
+	return size;
 }
 
 /**
@@ -1140,12 +1051,13 @@ uint16_t Aquaduino::deserialize(Stream* s)
  *
  * \returns The number of written bytes. -1 if writing failed.
  */
-int8_t Aquaduino::writeConfig(Aquaduino* aquaduino)
-{
-	if (m_ConfigManager != NULL)
-	{
+int8_t Aquaduino::writeConfig(Aquaduino* aquaduino) {
+	if (m_ConfigManager != NULL) {
 		//ToDo:Buggy
 		m_ConfigManager->writeConfig(aquaduino);
+		digitalWrite(13, HIGH);
+		delay(300);
+		digitalWrite(13, LOW);
 	}
 	return 0;
 }
@@ -1159,12 +1071,13 @@ int8_t Aquaduino::writeConfig(Aquaduino* aquaduino)
  *
  * \returns The number of written bytes. -1 if writing failed.
  */
-int8_t Aquaduino::writeConfig(Actuator* actuator)
-{
-	if (m_ConfigManager != NULL)
-	{
+int8_t Aquaduino::writeConfig(Actuator* actuator) {
+	if (m_ConfigManager != NULL) {
 		//ToDo:Buggy
 		m_ConfigManager->writeConfig(actuator);
+		digitalWrite(13, HIGH);
+		delay(300);
+		digitalWrite(13, LOW);
 	}
 	return 0;
 }
@@ -1178,12 +1091,13 @@ int8_t Aquaduino::writeConfig(Actuator* actuator)
  *
  * \returns The number of written bytes. -1 if writing failed.
  */
-int8_t Aquaduino::writeConfig(Controller* controller)
-{
-	if (m_ConfigManager != NULL)
-	{
+int8_t Aquaduino::writeConfig(Controller* controller) {
+	if (m_ConfigManager != NULL) {
 		//ToDo:Buggy
 		m_ConfigManager->writeConfig(controller);
+		digitalWrite(13, HIGH);
+		delay(300);
+		digitalWrite(13, LOW);
 	}
 	return 0;
 }
@@ -1197,12 +1111,13 @@ int8_t Aquaduino::writeConfig(Controller* controller)
  *
  * \returns The number of written bytes. -1 if writing failed.
  */
-int8_t Aquaduino::writeConfig(Sensor* sensor)
-{
-	if (m_ConfigManager != NULL)
-	{
+int8_t Aquaduino::writeConfig(Sensor* sensor) {
+	if (m_ConfigManager != NULL) {
 		//ToDo:Buggy
 		m_ConfigManager->writeConfig(sensor);
+		digitalWrite(13, HIGH);
+		delay(300);
+		digitalWrite(13, LOW);
 	}
 	return 0;
 }
@@ -1214,13 +1129,11 @@ int8_t Aquaduino::writeConfig(Sensor* sensor)
  *
  * \returns amount of data read in bytes. -1 if reading failed.
  */
-int8_t Aquaduino::readConfig(Aquaduino* aquaduino)
-{
-	IPAddress ip(192,168,2,2);
-	IPAddress nm(255,255,255,0);
+int8_t Aquaduino::readConfig(Aquaduino* aquaduino) {
+	IPAddress ip(192, 168, 2, 2);
+	IPAddress nm(255, 255, 255, 0);
 
-	if (m_ConfigManager != NULL)
-	{
+	if (m_ConfigManager != NULL) {
 		Serial.println(F("Reading aqua.cfg..."));
 		m_ConfigManager->readConfig(aquaduino);
 		Serial.println(F("Reading aqua.cfg finished."));
@@ -1237,10 +1150,8 @@ int8_t Aquaduino::readConfig(Aquaduino* aquaduino)
  *
  * \returns The number of read bytes. -1 if reading failed.
  */
-int8_t Aquaduino::readConfig(Actuator* actuator)
-{
-	if (m_ConfigManager != NULL)
-	{
+int8_t Aquaduino::readConfig(Actuator* actuator) {
+	if (m_ConfigManager != NULL) {
 		//ToDo:Buggy
 		m_ConfigManager->readConfig(actuator);
 	}
@@ -1256,10 +1167,8 @@ int8_t Aquaduino::readConfig(Actuator* actuator)
  *
  * \returns The number of read bytes. -1 if reading failed.
  */
-int8_t Aquaduino::readConfig(Controller* controller)
-{
-	if (m_ConfigManager != NULL)
-	{
+int8_t Aquaduino::readConfig(Controller* controller) {
+	if (m_ConfigManager != NULL) {
 		m_ConfigManager->readConfig(controller);
 	}
 	return 0;
@@ -1274,10 +1183,8 @@ int8_t Aquaduino::readConfig(Controller* controller)
  *
  * \returns The number of read bytes. -1 if reading failed.
  */
-int8_t Aquaduino::readConfig(Sensor* sensor)
-{
-	if (m_ConfigManager != NULL)
-	{
+int8_t Aquaduino::readConfig(Sensor* sensor) {
+	if (m_ConfigManager != NULL) {
 		//ToDo:Buggy
 		m_ConfigManager->readConfig(sensor);
 	}
@@ -1289,52 +1196,45 @@ int freeRam();
 /**
  * \brief Starts triggering of sensors and controller by timer interrupt
  */
-void Aquaduino::startTimer()
-{
-    TCCR5A = 0;
-    TCCR5B = 0;
-    TCNT5 = 0;
-    TIMSK5 = 0;
+void Aquaduino::startTimer() {
+	TCCR5A = 0;
+	TCCR5B = 0;
+	TCNT5 = 0;
+	TIMSK5 = 0;
 
-    OCR5A = 25000;
-    TCCR5A = _BV(WGM51) | _BV(WGM50);
-    TCCR5B = _BV(CS51) | _BV(CS50) | _BV(WGM53) | _BV(WGM52);
+	OCR5A = 25000;
+	TCCR5A = _BV(WGM51) | _BV(WGM50);
+	TCCR5B = _BV(CS51) | _BV(CS50) | _BV(WGM53) | _BV(WGM52);
 
-    TIMSK5 = _BV(TOIE5);
+	TIMSK5 = _BV(TOIE5);
 }
 
-void Aquaduino::readSensors()
-{
-    int8_t sensorIdx;
-    Sensor* currentSensor;
+void Aquaduino::readSensors() {
+	int8_t sensorIdx;
+	Sensor* currentSensor;
 
-    for (sensorIdx = 0; sensorIdx < MAX_SENSORS; sensorIdx++)
-    {
-        currentSensor = m_Sensors.get(sensorIdx);
-        if (currentSensor)
-        {
-            m_SensorReadings[sensorIdx] = currentSensor->read();
-            m_XiveleyDatastreams[sensorIdx]->setFloat(m_SensorReadings[sensorIdx]);
-        }
-        else
-        {
-            m_SensorReadings[sensorIdx] = 0.0;
-            m_XiveleyDatastreams[sensorIdx]->setFloat(0.0);
-        }
-    }
+	for (sensorIdx = 0; sensorIdx < MAX_SENSORS; sensorIdx++) {
+		currentSensor = m_Sensors.get(sensorIdx);
+		if (currentSensor) {
+			m_SensorReadings[sensorIdx] = currentSensor->read();
+			m_XiveleyDatastreams[sensorIdx]->setFloat(
+					m_SensorReadings[sensorIdx]);
+		} else {
+			m_SensorReadings[sensorIdx] = 0.0;
+			m_XiveleyDatastreams[sensorIdx]->setFloat(0.0);
+		}
+	}
 }
 
-void Aquaduino::executeControllers()
-{
-    int8_t controllerIdx;
-    Controller* currentController;
+void Aquaduino::executeControllers() {
+	int8_t controllerIdx;
+	Controller* currentController;
 
-    for (controllerIdx = 0; controllerIdx < MAX_CONTROLLERS; controllerIdx++)
-    {
-        currentController = m_Controllers.get(controllerIdx);
-        if (currentController)
-            currentController->run();
-    }
+	for (controllerIdx = 0; controllerIdx < MAX_CONTROLLERS; controllerIdx++) {
+		currentController = m_Controllers.get(controllerIdx);
+		if (currentController)
+			currentController->run();
+	}
 }
 
 /**
@@ -1344,40 +1244,37 @@ void Aquaduino::executeControllers()
  * controller run methods and the WebServer processing. Needs to be called
  * periodically i.e. within the loop() function of the Arduino environment.
  */
-void Aquaduino::run()
-{
-    static int8_t curMin = minute();
+void Aquaduino::run() {
+	static int8_t curMin = minute();
 
 #ifndef INTERRUPT_DRIVEN
-    readSensors();
-    executeControllers();
+	readSensors();
+	executeControllers();
 #endif
 
-    if (isXivelyEnabled() && minute() != curMin)
-    {
-        curMin = minute();
-        Serial.print(F("Sending data to Xively... "));
-        Serial.println(m_XivelyClient.put(*m_XivelyFeed, m_XivelyAPIKey));
-    }
-    
-    if (m_GUIServer != NULL)
-    {
-    	m_GUIServer->run();
-    }
+	if (isXivelyEnabled() && minute() != curMin) {
+		curMin = minute();
+		Serial.print(F("Sending data to Xively... "));
+		Serial.println(m_XivelyClient.put(*m_XivelyFeed, m_XivelyAPIKey));
+	}
+
+	if (m_GUIServer != NULL) {
+		m_GUIServer->run();
+	}
 
 }
 
 ISR(TIMER5_OVF_vect)
 {
 #ifdef INTERRUPT_DRIVEN
-    __aquaduino->readSensors();
-    __aquaduino->executeControllers();
+	__aquaduino->readSensors();
+	__aquaduino->executeControllers();
 #endif
 }
 
 int freeRam()
 {
-    extern int __heap_start, *__brkval;
-    int v;
-    return (int) &v - (__brkval == 0 ? (int) &__heap_start : (int) __brkval);
+	extern int __heap_start, *__brkval;
+	int v;
+	return (int) &v - (__brkval == 0 ? (int) &__heap_start : (int) __brkval);
 }
