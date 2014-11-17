@@ -8,38 +8,42 @@
 #ifndef GUISERVER_H_
 #define GUISERVER_H_
 
-
 #include <EthernetUdp.h>
 
-class GUIServer
-{
+class GUIServer {
 public:
-    GUIServer(uint16_t port);
+	GUIServer(uint16_t port);
 
-    void run();
+	void run();
 
 protected:
-    virtual ~GUIServer();
+	virtual ~GUIServer();
 private:
-    int8_t receiveCommand();
-    void getAllSensors();
-    void getSensorData(uint8_t sensorId);
-    void getAllActuators();
-    void getActuatorData(uint8_t actuatorId);
-    void getAllControllers();
-    void getClockTimers(uint8_t controllerId);
+	int8_t receiveCommand();
+	void getAllSensors();
+	void getSensorData(uint8_t sensorId);
+	void getAllActuators();
+	void getActuatorData(uint8_t actuatorId);
+	void getAllControllers();
+	void getClockTimers(uint8_t controllerId);
+	void getTemperatureController(uint8_t controllerId);
+	void getLevelController(uint8_t controllerId);
 
-    void setSensorConfig(uint8_t sensorId, uint8_t type, char* value);
-    void setSensorConfig(uint8_t sensorId, uint8_t type, uint8_t value);
-    void setActuatorData(uint8_t actuatorId, uint8_t locked, uint8_t on, uint8_t pwm);
-    void setActuatorConfig(uint8_t actuatorId, uint8_t dataType, uint8_t data);
-   	void setActuatorConfig(uint8_t actuatorId, uint8_t dataType, char* data);
+	void setSensorConfig(uint8_t sensorId);
+	void setActuatorData(uint8_t actuatorId);
+	void setActuatorConfig(uint8_t actuatorId);
+	void setClockTimer(uint8_t controllerId);
+	void setTemperatureController(uint8_t controllerId);
+	void setTemperatureControllerName(uint8_t controllerId);
+	void setLevelController(uint8_t controllerId);
+	void setLevelControllerName(uint8_t controllerId);
+	void resetLevelController(uint8_t controllerId);
 
-   	void write(uint32_t value,EthernetUDP* udpServer);
+	void write(uint32_t value, EthernetUDP* udpServer);
 
-    uint8_t m_Buffer[50];
-    uint16_t m_Port;
-    EthernetUDP m_UdpServer;
+	uint8_t m_Buffer[50];
+	uint16_t m_Port;
+	EthernetUDP m_UdpServer;
 };
 
 #endif /* GUISERVER_H_ */
