@@ -28,6 +28,7 @@ private:
 	void getClockTimers(uint8_t controllerId);
 	void getTemperatureController(uint8_t controllerId);
 	void getLevelController(uint8_t controllerId);
+	void getDS1820Addresses(uint8_t sensorid);
 
 	void setSensorConfig(uint8_t sensorId);
 	void setActuatorData(uint8_t actuatorId);
