@@ -928,12 +928,16 @@ uint16_t Aquaduino::deserialize(Stream* s) {
 
 		switch (typeId) {
 		case 1:
+			Serial.print(F("Adding Digitalinpiut sensor @  Pin: "));
+			Serial.println(portId);
 			sensor = new DigitalInput();
 			((DigitalInput*) sensor)->setPin(portId);
 			((DigitalInput*) sensor)->setName(name);
 			break;
 		case 2:
 			sensor = new DS18S20();
+			Serial.print(F("Adding DS18S20 sensor @  Pin: "));
+			Serial.println(portId);
 			((DS18S20*) sensor)->setPin(portId);
 			((DS18S20*) sensor)->setName(name);
 			m_OneWireHandler->addPin(portId);
