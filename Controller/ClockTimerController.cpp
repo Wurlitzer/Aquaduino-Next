@@ -30,14 +30,12 @@
  * Initializes the mapping of actuators to clocktimers.
  */
 ClockTimerController::ClockTimerController(const char* name) :
-        Controller(name), m_SelectedTimer(0), m_SelectedActuator(0)
-{
-    int8_t i = 0;
-    m_Type = CONTROLLER_CLOCKTIMER;
-    for (; i < MAX_CLOCKTIMERS; i++)
-    {
-        m_ActuatorMapping[i] = -1;
-    }
+		Controller(name), m_SelectedTimer(0), m_SelectedActuator(0) {
+	int8_t i = 0;
+	m_Type = CONTROLLER_CLOCKTIMER;
+	for (; i < MAX_CLOCKTIMERS; i++) {
+		m_ActuatorMapping[i] = -1;
+	}
 }
 
 /**
@@ -45,8 +43,7 @@ ClockTimerController::ClockTimerController(const char* name) :
  *
  * Empty.
  */
-ClockTimerController::~ClockTimerController()
-{
+ClockTimerController::~ClockTimerController() {
 }
 
 /**
@@ -55,13 +52,11 @@ ClockTimerController::~ClockTimerController()
  * \param[in] clockTimerID Index of the clocktimer
  * \returns pointer to the requested clocktimer object
  */
-ClockTimer* ClockTimerController::getClockTimer(int8_t clockTimerID)
-{
-    if (clockTimerID >= 0 && clockTimerID < MAX_CLOCKTIMERS)
-    {
-        return &m_Timers[clockTimerID];
-    }
-    return NULL;
+ClockTimer* ClockTimerController::getClockTimer(int8_t clockTimerID) {
+	if (clockTimerID >= 0 && clockTimerID < MAX_CLOCKTIMERS) {
+		return &m_Timers[clockTimerID];
+	}
+	return NULL;
 }
 
 /**
@@ -70,14 +65,12 @@ ClockTimer* ClockTimerController::getClockTimer(int8_t clockTimerID)
  * \param[in] clockTimerID Index of clocktimer
  * \returns index of the controlled actuator
  */
-int8_t ClockTimerController::getAssignedActuatorID(int8_t clockTimerID)
-{
-    if (clockTimerID >= 0 && clockTimerID < MAX_CLOCKTIMERS)
-    {
-        return m_ActuatorMapping[clockTimerID];
-    }
+int8_t ClockTimerController::getAssignedActuatorID(int8_t clockTimerID) {
+	if (clockTimerID >= 0 && clockTimerID < MAX_CLOCKTIMERS) {
+		return m_ActuatorMapping[clockTimerID];
+	}
 
-    return -1;
+	return -1;
 }
 
 /**
@@ -87,49 +80,43 @@ int8_t ClockTimerController::getAssignedActuatorID(int8_t clockTimerID)
  * \param[in] actuatorID Index of the actuator to be controlled by the clocktimer
  */
 void ClockTimerController::assignActuatorToClockTimer(int8_t clockTimerID,
-                                                      int8_t actuatorID)
-{
-    if (actuatorID >= 0&& clockTimerID >= 0 &&
-    actuatorID < __aquaduino->getNrOfActuators() &&
-    clockTimerID < MAX_CLOCKTIMERS)
-    {
-        m_ActuatorMapping[clockTimerID] = actuatorID;
-    }
+		int8_t actuatorID) {
+	if (clockTimerID >= 0 && actuatorID >= -1 &&
+	actuatorID < __aquaduino->getNrOfActuators() &&
+	clockTimerID < MAX_CLOCKTIMERS) {
+		m_ActuatorMapping[clockTimerID] = actuatorID;
+	}
 }
 
-uint16_t ClockTimerController::serialize(Stream* s)
-{
-    uint8_t i;
-    uint8_t clockTimers = MAX_CLOCKTIMERS;
+uint16_t ClockTimerController::serialize(Stream* s) {
+	uint8_t i;
+	uint8_t clockTimers = MAX_CLOCKTIMERS;
 
-    s->write(clockTimers);
+	s->write(clockTimers);
 
-    s->write((uint8_t*) m_ActuatorMapping, sizeof(m_ActuatorMapping));
-    for (i = 0; i < MAX_CLOCKTIMERS; i++)
-    {
-        m_Timers[i].serialize(s);
-    }
-    return 1;
+	s->write((uint8_t*) m_ActuatorMapping, sizeof(m_ActuatorMapping));
+	for (i = 0; i < MAX_CLOCKTIMERS; i++) {
+		m_Timers[i].serialize(s);
+	}
+	return 1;
 }
 
-uint16_t ClockTimerController::deserialize(Stream* s)
-{
-    uint8_t i;
-    uint8_t clockTimers = 0;
+uint16_t ClockTimerController::deserialize(Stream* s) {
+	uint8_t i;
+	uint8_t clockTimers = 0;
 
-    clockTimers = (uint8_t) s->read();
+	clockTimers = (uint8_t) s->read();
 
-    if (clockTimers != MAX_CLOCKTIMERS)
-        return 0;
+	if (clockTimers != MAX_CLOCKTIMERS)
+		return 0;
 
-    s->readBytes((char*) m_ActuatorMapping, sizeof(m_ActuatorMapping));
+	s->readBytes((char*) m_ActuatorMapping, sizeof(m_ActuatorMapping));
 
-    for (i = 0; i < MAX_CLOCKTIMERS; i++)
-    {
-        if (m_Timers[i].deserialize(s) == 0)
-            return 0;
-    }
-    return 1;
+	for (i = 0; i < MAX_CLOCKTIMERS; i++) {
+		if (m_Timers[i].deserialize(s) == 0)
+			return 0;
+	}
+	return 1;
 }
 
 /**
@@ -138,22 +125,19 @@ uint16_t ClockTimerController::deserialize(Stream* s)
  * Enables or disables the actuators based on the clocktimers and the
  * internal mapping of actuators to clocktimers.
  */
-int8_t ClockTimerController::run()
-{
-    int8_t i;
-    Actuator* actuator;
-    Controller* controller;
-    for (i = 0; i < MAX_CLOCKTIMERS; i++)
-    {
-        actuator = __aquaduino->getActuator(m_ActuatorMapping[i]);
-        controller = __aquaduino->getController(actuator->getController());
-        if (actuator != NULL && controller == this)
-        {
-            if (m_Timers[i].check())
-                actuator->on();
-            else
-                actuator->off();
-        }
-    }
-    return 0;
+int8_t ClockTimerController::run() {
+	int8_t i;
+	Actuator* actuator;
+	Controller* controller;
+	for (i = 0; i < MAX_CLOCKTIMERS; i++) {
+		actuator = __aquaduino->getActuator(m_ActuatorMapping[i]);
+		controller = __aquaduino->getController(actuator->getController());
+		if (actuator != NULL && controller == this) {
+			if (m_Timers[i].check())
+				actuator->on();
+			else
+				actuator->off();
+		}
+	}
+	return 0;
 }
