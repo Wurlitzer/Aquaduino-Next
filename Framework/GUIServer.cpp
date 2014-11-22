@@ -13,6 +13,8 @@
 #include <Controller/LevelController.h>
 #include <Actuators/DigitalOutput.h>
 #include <Sensors/DS18S20.h>
+#include <Sensors/DigitalInput.h>
+#include <OneWireHandler.h>
 
 enum {
 	GET_VERSION = 0,
@@ -35,7 +37,8 @@ enum {
 	RESET_LEVEL_CONTROLLER = 17,
 	SET_LEVEL_CONTROLLER_NAME = 18,
 	SET_TEMPERATURE_CONTROLLER_NAME = 19,
-	GET_DS1820_ADDRESSES = 20
+	GET_DS1820_ADDRESSES = 20,
+	SET_DS1820_ADDRESS = 21
 };
 
 GUIServer::GUIServer(uint16_t port) {
@@ -140,8 +143,12 @@ void GUIServer::run() {
 			setLevelControllerName(m_Buffer[2]);
 			break;
 		case GET_DS1820_ADDRESSES:
-			getDS1820Addresses(m_Buffer[2]);
+			getDS1820Addresses();
 			break;
+		case SET_DS1820_ADDRESS:
+			setDS1820Address(m_Buffer[2]);
+			break;
+
 		default:
 			break;
 		}
@@ -813,7 +820,32 @@ void GUIServer::resetLevelController(uint8_t controllerId) {
 /////////////////////////////////////
 //
 // DS1820
-void GUIServer::getDS1820Addresses(uint8_t sensorId) {
+void GUIServer::getDS1820Addresses() {
+	/*DS18S20* sensor;
+	 if (__aquaduino->getSensor(sensorId)->getType() == SENSOR_DS18S20) {
+	 sensor = (DS18S20*) __aquaduino->getSensor(sensorId);
+	 } else {
+	 //errorcode 10
+	 m_UdpServer.write((uint8_t) 10);
+	 m_UdpServer.write(__aquaduino->getSensor(sensorId)->getType());
+	 return;
+	 }*/
+	//errorcode 0
+	m_UdpServer.write((uint8_t) 0);
+	//
+	OneWireHandler* onewire = __aquaduino->getOneWireHandler();
+	uint8_t addr[8];
+	onewire->findDevice(0, addr, 8);
+
+	//uint8_t addr[8];
+	// sensor->getAddress(addr);
+	uint8_t i = 0;
+	while (i < 8) {
+		m_UdpServer.write(addr[i]);
+		i++;
+	}
+}
+void GUIServer::setDS1820Address(uint8_t sensorId) {
 	DS18S20* sensor;
 	if (__aquaduino->getSensor(sensorId)->getType() == SENSOR_DS18S20) {
 		sensor = (DS18S20*) __aquaduino->getSensor(sensorId);
@@ -823,19 +855,15 @@ void GUIServer::getDS1820Addresses(uint8_t sensorId) {
 		m_UdpServer.write(__aquaduino->getSensor(sensorId)->getType());
 		return;
 	}
-	//errorcode 1
+	//errorcode 0
 	m_UdpServer.write((uint8_t) 0);
-	//
-	Serial.print(1);
 	uint8_t addr[8];
-	Serial.print(2);
-	sensor->getAddress(addr);
-	Serial.print(3);
 	uint8_t i = 0;
-	Serial.print(4);
 	while (i < 8) {
-		Serial.println(i);
-		m_UdpServer.write(addr[i]);
+		addr[i] = m_Buffer[i + 3];
 		i++;
 	}
+	sensor->setAddress(addr);
+	__aquaduino->writeConfig(sensor);
+
 }

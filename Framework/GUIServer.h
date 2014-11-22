@@ -28,7 +28,7 @@ private:
 	void getClockTimers(uint8_t controllerId);
 	void getTemperatureController(uint8_t controllerId);
 	void getLevelController(uint8_t controllerId);
-	void getDS1820Addresses(uint8_t sensorid);
+	void getDS1820Addresses();
 
 	void setSensorConfig(uint8_t sensorId);
 	void setActuatorData(uint8_t actuatorId);
@@ -39,6 +39,7 @@ private:
 	void setLevelController(uint8_t controllerId);
 	void setLevelControllerName(uint8_t controllerId);
 	void resetLevelController(uint8_t controllerId);
+	void setDS1820Address(uint8_t sensorId);
 
 	void write(uint32_t value, EthernetUDP* udpServer);
 
