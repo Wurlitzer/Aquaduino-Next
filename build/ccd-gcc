@@ -64,7 +64,7 @@ done
 
 if [ x"$CC" = x ]
 then
-	CC=/opt/avr-gcc-4.8.2/bin/avr-gcc
+	CC=/Development/Frameworks/Cpp/avr-gcc-4.8.2/bin/avr-gcc
 	export CC
 fi
 

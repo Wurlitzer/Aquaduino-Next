@@ -30,8 +30,13 @@ include		$(dir)/Rules.mk
 dir	:= $(d)/Time
 include		$(dir)/Rules.mk	
 
+dir	:= $(d)/SCPro
+include		$(dir)/Rules.mk
+
 dir	:= $(d)/Xively
 include		$(dir)/Rules.mk
+
+
 
 # Local variables
 

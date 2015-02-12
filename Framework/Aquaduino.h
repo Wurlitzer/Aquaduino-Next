@@ -25,6 +25,7 @@
 #include <Ethernet.h>
 #include <HttpClient.h>
 #include <Xively.h>
+#include <SCPro.h>
 
 #include "Framework/FrameworkConfig.h"
 #include "Framework/Controller.h"
@@ -185,7 +186,10 @@ private:
     XivelyDatastream* m_XiveleyDatastreams[MAX_SENSORS];
     XivelyFeed* m_XivelyFeed;
     EthernetClient ethClient;
-    XivelyClient m_XivelyClient;
+    //XivelyClient m_XivelyClient;
+
+    SCProClient m_SCProClient;
+    void initSCPro();
 
     static const uint16_t m_Size;
 

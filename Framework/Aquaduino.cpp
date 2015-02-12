@@ -61,11 +61,19 @@
 #include <EthernetUdp.h>
 #include <stdlib.h>
 
+
 Aquaduino* __aquaduino;
 
 extern time_t NTPSync();
 extern int freeRam();
 
+//Pfusch
+char m_SCProSerial[] = "12345678901";
+char m_SCProSWVersion[] = "0.0.1";
+char m_SCProServerManager[] = "151.252.48.151";
+uint16_t m_SCProServerManagerPort = 8080;
+char m_SCProServerManagerPath[] = "/sprycontrol-dev/api/m/sprycontrol/control-interface/";
+char m_SCProServerManagerFunctionPath[] = "server-manager/";
 /**
  * \brief Default Constructor
  *
@@ -76,10 +84,11 @@ extern int freeRam();
  */
 Aquaduino::Aquaduino() :
 		m_IP(192, 168, 1, 222), m_Netmask(255, 255, 255, 0), m_DNSServer(192,
-				168, 1, 1), m_Gateway(192, 168, 1, 1), m_NTPServer(192, 53, 103,
+				168, 115, 7), m_Gateway(192, 168, 115, 7), m_NTPServer(192, 53, 103,
 				108), m_Timezone(TIME_ZONE), m_NTPSyncInterval(5), m_DHCP(0), m_NTP(
 				0), m_Xively(0), m_Controllers(MAX_CONTROLLERS), m_Actuators(
-		MAX_ACTUATORS), m_Sensors(MAX_SENSORS), m_XivelyClient(ethClient) {
+		MAX_ACTUATORS), m_Sensors(MAX_SENSORS), /*m_XivelyClient(ethClient),*/m_SCProClient(
+				ethClient) {
 	__aquaduino = this;
 	m_Type = AQUADUINO;
 
@@ -92,7 +101,9 @@ Aquaduino::Aquaduino() :
 	readConfig(this);
 
 	initNetwork();
-	initXively();
+	//initXively();
+
+	initSCPro();
 
 #ifdef INTERRUPT_DRIVEN
 	Serial.println("Interrupt triggered mode enabled.");
@@ -446,7 +457,7 @@ void Aquaduino::setTime(int8_t hour, int8_t minute, int8_t second, int8_t day,
  */
 
 void Aquaduino::initXively() {
-	Serial.print(F("Xively API Key: "));
+/*	Serial.print(F("Xively API Key: "));
 	Serial.println(m_XivelyAPIKey);
 
 	Serial.print(F("Xively Feed: "));
@@ -462,7 +473,16 @@ void Aquaduino::initXively() {
 	}
 
 	m_XivelyFeed = new XivelyFeed(atol(m_XivelyFeedName), m_XiveleyDatastreams,
-			getNrOfSensors());
+			getNrOfSensors());*/
+}
+void Aquaduino::initSCPro() {
+	Serial.print(F("SCPro Serial: "));
+	Serial.println(m_SCProSerial);
+
+	Serial.print(F("SCPro SW Version: "));
+	Serial.println(m_SCProSWVersion);
+
+	Serial.println(m_SCProClient.init(m_SCProServerManager, m_SCProServerManagerPort,m_SCProServerManagerPath,m_SCProServerManagerFunctionPath,m_SCProSerial));
 }
 
 /**
@@ -1256,11 +1276,11 @@ void Aquaduino::run() {
 	executeControllers();
 #endif
 
-	if (isXivelyEnabled() && minute() != curMin) {
+	/*if (isXivelyEnabled() && minute() != curMin) {
 		curMin = minute();
 		Serial.print(F("Sending data to Xively... "));
 		Serial.println(m_XivelyClient.put(*m_XivelyFeed, m_XivelyAPIKey));
-	}
+	}*/
 
 	if (m_GUIServer != NULL) {
 		m_GUIServer->run();
