@@ -1,5 +1,5 @@
-
-//#include <SCProDatastream.h>
-//#include <SCProFeed.h>
 #include <SCProClient.h>
+#include <HexConverter.h>
+#include <BinMessageParser.h>
+#include <PutchannelRequest.h>
 

@@ -1,112 +1,82 @@
 #include <SCPro.h>
 #include <HttpClient.h>
+#include <Time.h>
 #include <CountingStream.h>
+
+extern int freeRam();
+enum {
+	SERVER_MANAGER = 0, API_KEY = 1
+};
 
 SCProClient::SCProClient(Client& aClient) :
 		_client(aClient) {
+	m_hexConverter = new HexConverter();
+	m_binMessageParser = new BinMessageParser();
+}
+int SCProClient::init(char* server, uint16_t port, char* path, char* serial,
+		char* key, char* SWVersion) {
+
+	/*if (m_severURL != 0) {
+	 free(m_severURL);
+	 }
+	 m_severURL = 0;*/
+	m_SWVersion = (char*) malloc(16);
+	strncpy(m_SWVersion, SWVersion, 16);
+
+	m_Serial = serial;
+	m_connectionKey = key;
+
+	get(server, port, path, SERVER_MANAGER);
+	Serial.print("..");
+	get(m_severURL, m_severPORT, m_severPath, API_KEY);
+	//Serial.print(m_apikey);
+	Serial.print(F("Free Ram: "));
+	Serial.println(freeRam());
+
 }
 
-int SCProClient::init(char* server, uint16_t port, char* path, char* function,
-		char* serial) {
-	Serial.print(1);
+uint8_t SCProClient::get(char* server, uint16_t port, char* path,
+		int8_t myFunction) {
+
+	Serial.print(F("SCProClient::get Free Ram: "));
+	Serial.println(freeRam());
+	char functionStr[16];
+
 	HttpClient http(_client);
-	Serial.print(2);
+
 	http.beginRequest();
-	Serial.print(3);
-	char pathFunction[254];
-	strncpy(pathFunction, path, 254);
-	strncat(pathFunction, function, 254);
-	strncat(pathFunction, serial, 254);
+
+	switch (myFunction) {
+	case 0:
+		strncpy(functionStr, "server-manager/", 16);
+		break;
+	case 1:
+		strncpy(functionStr, "apikey/", 16);
+
+		break;
+	}
+
+	uint8_t counter = 0;
+	uint8_t contentLength;
+
+	char pathFunction[128];
+	strncpy(pathFunction, path, 128);
+	strncat(pathFunction, functionStr, 128);
+	strncat(pathFunction, m_Serial, 128);
+
 	int ret = http.get(server, port, pathFunction);
-	Serial.print(4);
+	if (myFunction == 1) {
+		http.sendHeader("X-Key", m_connectionKey);
+	}	//pathFunction[0] = (char) 0;
+	Serial.println(pathFunction);
+	char* httpResult = NULL;
+
 	if (ret == 0) {
 		CountingStream countingStream; // Used to work out how long that data will be
 
-		Serial.print(5);
 		http.sendHeader("Content-Length", 0);
 		// Now we're done sending the request
-		Serial.print(6);
-		http.endRequest();
-		Serial.print(7);
-		ret = http.responseStatusCode();
-		Serial.print(ret);
-		if ((ret < 200) || (ret > 299)) {
-			// It wasn't a successful response, ensure it's -ve so the error is easy to spot
-			if (ret > 0) {
-				ret = ret * -1;
-			}
-		}
-		Serial.print(8);
-		http.flush();
-		Serial.print(9);
-		http.stop();
-		Serial.print(0);
-	}
-	Serial.print(".");
-	return ret;
 
-}
-/*
- int SCProClient::put(SCProFeed& aFeed, const char* aApiKey) {
- HttpClient http(_client);
- char path[30];
- buildPath(path, aFeed.id(), "json");
- http.beginRequest();
- int ret = http.put("dez06.spryflash.com:8080/sprycontrol-dev", path);
- if (ret == 0) {
- http.sendHeader("X-ApiKey", aApiKey);
-
- CountingStream countingStream; // Used to work out how long that data will be
- for (int i = kCalculateDataLength; i <= kSendData; i++) {
- Print* s;
- int len = 0;
- if (i == kCalculateDataLength) {
- s = &countingStream;
- } else {
- s = &http;
- }
- len = s->print(aFeed);
- if (i == kCalculateDataLength) {
- // We now know how long the data will be...
- http.sendHeader("Content-Length", len);
- }
- }
- // Now we're done sending the request
- http.endRequest();
-
- ret = http.responseStatusCode();
- if ((ret < 200) || (ret > 299)) {
- // It wasn't a successful response, ensure it's -ve so the error is easy to spot
- if (ret > 0) {
- ret = ret * -1;
- }
- }
- http.flush();
- http.stop();
- }
- return ret;
- }
- */
-/*void SCProClient::buildPath(char* aDest, unsigned long aFeedId, const char* aFormat)
- {
- char idstr[12];
- strcpy(aDest, "/v2/feeds/");
- char* p = &idstr[10];
- idstr[11] = 0;
- for(*p--=aFeedId%10+0x30;aFeedId/=10;*p--=aFeedId%10+0x30);
- strcat(aDest, p+1);
- strcat(aDest, ".");
- strcat(aDest, aFormat);
- }*/
-/*
-int SCProClient::get(XivelyFeed& aFeed, const char* aApiKey) {
-	HttpClient http(_client);
-	char path[30];
-	buildPath(path, aFeed.id(), "csv");
-	http.beginRequest();
-	int ret = http.get("api.xively.com", path);
-	if (ret == 0) {
-		http.sendHeader("X-ApiKey", aApiKey);
 		http.endRequest();
 
 		ret = http.responseStatusCode();
@@ -117,72 +87,129 @@ int SCProClient::get(XivelyFeed& aFeed, const char* aApiKey) {
 			}
 		} else {
 			http.skipResponseHeaders();
-			// Now we need to run through each line, looking to see if it matches one
-			// of the given datastreams.
-			// So that we don't use any more memory than necessary, we'll keep track
-			// of which character we're up to in the ID string, and have a bit-field
-			// of the remaining datastreams that match.  This limits us (if we use
-			// and unsigned long) to 32 datastreams in a feed, but that's probably ok
-			int idIdx = 0;
-			unsigned long idBitfield = 0;
-			for (int i = 0; i < aFeed.size(); i++) {
-				idBitfield |= 1 << i;
-			}
-			// As long as we've got bitfields to read
-			// FIXME Need to time out if this hangs for too long
-			while ((http.available() || http.connected())) {
+
+			contentLength = http.contentLength();
+
+			httpResult = (char*) malloc(contentLength);
+
+			char next;
+			while ((http.available() || http.connected())
+					&& counter < contentLength) {
 				if (http.available()) {
-					char next = http.read();
-					switch (next) {
-					case ',':
-						// We've reached the end of the ID string, see if it matches any of the
-						// datastreams in the feed
-						// But first skip the updated time, to get to the value
-						http.find((char*) ",");
-						for (int i = 0; i < aFeed.size(); i++) {
-							if ((idBitfield & 1 << i)
-									&& (aFeed[i].idLength() == idIdx)) {
-								// We've found a matching datastream
-								// FIXME cope with any errors returned
-								aFeed[i].updateValue(http);
-								// When we get here we'll be at the end of the line, but if aFeed[i]
-								// was a string or buffer type, we'll have consumed the '\n'
-								next = '\n';
-							}
-						}
-						// Need to run to the end of the line regardless now
-						// And deliberately drop through into the next case
-						while ((next != '\r') && (next != '\n')
-								&& (http.available() || http.connected())) {
-							next = http.read();
-						}
-					case '\r':
-					case '\n':
-						// We've hit the end of the line, reset everything
-						idIdx = 0;
-						for (int i = 0; i < aFeed.size(); i++) {
-							idBitfield |= 1 << i;
-						}
-						break;
-					default:
-						// Next character of the ID string
-						for (int i = 0; i < aFeed.size(); i++) {
-							if (!(idBitfield & 1 << i)
-									|| (aFeed[i].idChar(idIdx) != next)) {
-								idBitfield &= ~(1 << i);
-							}
-							// else we're still matching
-						}
-						idIdx++; // onto the next character in the ID
-						break;
-					};
+
+					next = http.read();
+
+					httpResult[counter] = next;
+					counter++;
 				}
 			}
-			delay(10);
+			httpResult[counter] = 0;
+
+			http.flush();
+			//Serial.print("RAW:");
+			//Serial.println(httpResult);
+
 		}
 		http.stop();
-	}
-	return ret;
 
+	}
+
+	uint8_t binStrLen;
+	uint8_t httpResultLength = strlen(httpResult);
+	binStrLen = m_hexConverter->estimatedBinBufLen(httpResultLength);
+	//Serial.println(binStrLen);
+	//Serial.println(".");
+	m_hexConverter->decodeFromHex(httpResult, httpResultLength, httpResult, 0,
+			binStrLen);
+
+	switch (myFunction) {
+	case 0:
+		//URL
+		uint8_t nextPos;
+		nextPos = m_binMessageParser->fromBinToString8(m_severURL, 32,
+				httpResult, binStrLen, 0);
+		Serial.print(m_severURL);
+		//Port
+
+		m_severPORT = m_binMessageParser->fromBinToInt16(httpResult, binStrLen,
+				nextPos);
+		nextPos += 2;
+		Serial.print(m_severPORT);
+		//Path
+
+		m_binMessageParser->fromBinToString8(m_severPath, 32, httpResult,
+				binStrLen, nextPos);
+		Serial.println(m_severPath);
+		break;
+	case 1:
+
+		m_binMessageParser->fromBinToString8(m_apikey, 32, httpResult,
+				binStrLen, 0);
+		Serial.print("apikey: ");
+		Serial.println(m_apikey);
+		break;
+	}
+	free(httpResult);
+	return contentLength;
 }
-*/
+
+int16_t SCProClient::put(CPutchannelRequest* request) {
+	Serial.print(F("SCProClient::put Free Ram: "));
+	Serial.println(freeRam());
+
+	uint8_t len = m_hexConverter->estimatedHexBufLen(request->getSize());
+	char* buffer = (char*) malloc(len);
+
+	len = request->toHex(buffer, len, 0, m_hexConverter, m_binMessageParser);
+
+	int16_t result = put(buffer, len);
+	free(buffer);
+
+
+	return result;
+}
+int16_t SCProClient::put(char* feed, uint8_t length) {
+
+
+	HttpClient http(_client);
+
+	http.beginRequest();
+
+	char pathFunction[254];
+	strncpy(pathFunction, m_severPath, 254);
+	strncat(pathFunction, "channels/", 254);
+	strncat(pathFunction, m_Serial, 254);
+
+	int ret = http.post(m_severURL, m_severPORT, pathFunction);
+
+	if (ret == 0) {
+		http.sendHeader("X-ApiKey", m_apikey);
+		http.sendHeader("X-SW", m_SWVersion);
+		http.sendHeader("Content-Type", "text/plain");
+		http.sendHeader("Content-Length", length);
+
+		http.write((unsigned char*) feed, length);
+
+		// Now we're done sending the request
+		http.endRequest();
+
+		ret = http.responseStatusCode();
+		if ((ret < 200) || (ret > 299)) {
+			// It wasn't a successful response, ensure it's -ve so the error is easy to spot
+			if (ret > 0) {
+				ret = ret * -1;
+			}
+		}
+		http.flush();
+		http.stop();
+
+	}
+	//free(sendFeed);
+
+	return ret;
+}
+/*
+ SCProClient::÷SCProClient() {
+ free(m_SWVersion);
+
+ }*/

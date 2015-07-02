@@ -25,6 +25,7 @@
 #include <Framework/Serializable.h>
 #include <Framework/FrameworkConfig.h>
 
+//TODO MEM Zeiger Ÿbergeben 24 Byte sparen
 const static uint8_t max_timers = CLOCKTIMER_MAX_TIMERS;
 
 /**
@@ -58,7 +59,7 @@ public:
 	uint8_t getMinuteOff(uint8_t index) {
 		return m_MOff[index % max_timers];
 	}
-
+/*
 	void setHourOn(uint8_t index, uint8_t value) {
 		m_HOn[index % max_timers] = value % 24;
 	}
@@ -73,8 +74,8 @@ public:
 
 	void setMinuteOff(uint8_t index, uint8_t value) {
 		m_MOff[index % max_timers] = value % 60;
-	}
-
+	}*/
+/*
 	void enableMonday() {
 		m_DOW |= 0x1;
 	}
@@ -138,7 +139,7 @@ public:
 	void disableAllDays() {
 		m_DOW = 0;
 	}
-
+*/
 	int8_t isMondayEnabled() {
 		return m_DOW & 0x1;
 	}

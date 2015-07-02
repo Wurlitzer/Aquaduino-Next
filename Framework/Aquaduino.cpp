@@ -61,19 +61,22 @@
 #include <EthernetUdp.h>
 #include <stdlib.h>
 
-
 Aquaduino* __aquaduino;
 
 extern time_t NTPSync();
 extern int freeRam();
 
 //Pfusch
-char m_SCProSerial[] = "12345678901";
-char m_SCProSWVersion[] = "0.0.1";
-char m_SCProServerManager[] = "151.252.48.151";
-uint16_t m_SCProServerManagerPort = 8080;
-char m_SCProServerManagerPath[] = "/sprycontrol-dev/api/m/sprycontrol/control-interface/";
-char m_SCProServerManagerFunctionPath[] = "server-manager/";
+
+//char m_SCProSerial[] = "12345678901";
+//char m_SCProConnectionKEY[] = "abce484jrjg65kjd,mvhd64hjdmdkyjsehuwe.-_*/";
+//char m_SCProSWVersion[] = "0.0.1";
+//char m_SCProServerManager[] = "151.252.48.151";
+//uint16_t m_SCProServerManagerPort = 8080;
+//char m_SCProServerManagerPath[] =
+//		"/sprycontrol-dev/api/m/sprycontrol/control-interface/";
+//char m_SCProServerManagerFunctionPath[] = "server-manager/";*/
+
 /**
  * \brief Default Constructor
  *
@@ -84,11 +87,10 @@ char m_SCProServerManagerFunctionPath[] = "server-manager/";
  */
 Aquaduino::Aquaduino() :
 		m_IP(192, 168, 1, 222), m_Netmask(255, 255, 255, 0), m_DNSServer(192,
-				168, 115, 7), m_Gateway(192, 168, 115, 7), m_NTPServer(192, 53, 103,
-				108), m_Timezone(TIME_ZONE), m_NTPSyncInterval(5), m_DHCP(0), m_NTP(
-				0), m_Xively(0), m_Controllers(MAX_CONTROLLERS), m_Actuators(
-		MAX_ACTUATORS), m_Sensors(MAX_SENSORS), /*m_XivelyClient(ethClient),*/m_SCProClient(
-				ethClient) {
+				168, 115, 7), m_Gateway(192, 168, 115, 7), m_NTPServer(178, 189,
+				127, 147), m_Timezone(TIME_ZONE), m_NTPSyncInterval(5), m_DHCP(
+				0), m_NTP(0), m_Controllers(MAX_CONTROLLERS), m_Actuators(
+		MAX_ACTUATORS), m_Sensors(MAX_SENSORS), m_SCProClient(ethClient) {
 	__aquaduino = this;
 	m_Type = AQUADUINO;
 
@@ -103,13 +105,20 @@ Aquaduino::Aquaduino() :
 	initNetwork();
 	//initXively();
 
+	//m_SCProConnectionKey = (char*) malloc(
+	//		sizeof(char) * (SCPRO_CONNECTION_KEY_LENGTH + 1));
+
 	initSCPro();
+
+	//free(m_SCProConnectionKey);
 
 #ifdef INTERRUPT_DRIVEN
 	Serial.println("Interrupt triggered mode enabled.");
 	startTimer();
 #else
 	Serial.println("Software triggered mode enabled.");
+	Serial.print(F("Free Ram: "));
+	Serial.println(freeRam());
 #endif
 
 }
@@ -185,7 +194,7 @@ void Aquaduino::initNetwork() {
 	m_Gateway = Ethernet.gatewayIP();
 	m_Netmask = Ethernet.subnetMask();
 
-	Serial.print(F("IP: "));
+	/*Serial.print(F("IP: "));
 	Serial.println(m_IP);
 	Serial.print(F("Netmask: "));
 	Serial.println(m_Netmask);
@@ -194,10 +203,10 @@ void Aquaduino::initNetwork() {
 	Serial.print(F("DNS Server: "));
 	Serial.println(m_DNSServer);
 	Serial.print(F("NTP Server: "));
-	Serial.println(m_NTPServer);
+	Serial.println(m_NTPServer);*/
 
 	//Init Time. If NTP Sync fails this will be used.
-	setTime(0, 0, 0, 1, 1, 2013);
+	setTime(0, 0, 0, 1, 1, 2015);
 
 	if (isNTPEnabled()) {
 		Serial.println(F("Syncing time using NTP..."));
@@ -456,76 +465,41 @@ void Aquaduino::setTime(int8_t hour, int8_t minute, int8_t second, int8_t day,
  * Xively channels will be send to Xively.
  */
 
-void Aquaduino::initXively() {
-/*	Serial.print(F("Xively API Key: "));
-	Serial.println(m_XivelyAPIKey);
+/*void Aquaduino::initXively() {
+ /*	Serial.print(F("Xively API Key: "));
+ Serial.println(m_XivelyAPIKey);
 
-	Serial.print(F("Xively Feed: "));
-	Serial.println(m_XivelyFeedName);
-	Serial.println(F("Xively Channels:"));
-	for (uint8_t i = 0; i < getNrOfSensors(); i++) {
-		Serial.print(i);
-		Serial.print(":");
-		Serial.println(m_XivelyChannelNames[i]);
-		m_XiveleyDatastreams[i] = new XivelyDatastream(m_XivelyChannelNames[i],
-				strlen(m_XivelyChannelNames[i]),
-				DATASTREAM_FLOAT);
-	}
+ Serial.print(F("Xively Feed: "));
+ Serial.println(m_XivelyFeedName);
+ Serial.println(F("Xively Channels:"));
+ for (uint8_t i = 0; i < getNrOfSensors(); i++) {
+ Serial.print(i);
+ Serial.print(":");
+ Serial.println(m_XivelyChannelNames[i]);
+ m_XiveleyDatastreams[i] = new XivelyDatastream(m_XivelyChannelNames[i],
+ strlen(m_XivelyChannelNames[i]),
+ DATASTREAM_FLOAT);
+ }
 
-	m_XivelyFeed = new XivelyFeed(atol(m_XivelyFeedName), m_XiveleyDatastreams,
-			getNrOfSensors());*/
-}
+ m_XivelyFeed = new XivelyFeed(atol(m_XivelyFeedName), m_XiveleyDatastreams,
+ getNrOfSensors());
+ }*/
 void Aquaduino::initSCPro() {
-	Serial.print(F("SCPro Serial: "));
-	Serial.println(m_SCProSerial);
+	char SCProSWVersion[] = "0.0.1";
+	char SCProServerManager[] = "151.252.48.151";
+	uint16_t SCProServerManagerPort = 8080;
+	char SCProServerManagerPath[] =
+			"/sprycontrol-dev/api/m/sprycontrol/control-interface/";
 
 	Serial.print(F("SCPro SW Version: "));
-	Serial.println(m_SCProSWVersion);
+	Serial.println(SCProSWVersion);
 
-	Serial.println(m_SCProClient.init(m_SCProServerManager, m_SCProServerManagerPort,m_SCProServerManagerPath,m_SCProServerManagerFunctionPath,m_SCProSerial));
-}
+	m_SCProClient.init(SCProServerManager, SCProServerManagerPort,
+			SCProServerManagerPath, m_SCProSerial, m_SCProConnectionKey,
+			SCProSWVersion);
 
-/**
- * \brief Enables Xively.
- *
- * Enables the Xively flag. When this flag is set sensor data with valid
- * Xively channels will be send to Xively.
- */
+	m_SCProPutchannelRequest = new CPutchannelRequest();
 
-void Aquaduino::enableXively() {
-	m_Xively = 1;
-}
-
-/**
- * \brief Disables Xively flag.
- *
- */
-void Aquaduino::disableXively() {
-	m_Xively = 0;
-}
-
-/**
- * \brief Checks whether Xively is enabled or not.
- *
- * \returns Value of the Xively flag.
- */
-int8_t Aquaduino::isXivelyEnabled() {
-	return m_Xively;
-}
-
-void Aquaduino::setXivelyApiKey(const char* key) {
-	strcpy(m_XivelyAPIKey, key);
-}
-const char* Aquaduino::getXivelyApiKey() {
-	return m_XivelyAPIKey;
-}
-
-void Aquaduino::setXivelyFeed(const char* feed) {
-	strcpy(m_XivelyFeedName, feed);
-}
-
-const char* Aquaduino::getXivelyFeed() {
-	return m_XivelyFeedName;
 }
 
 /**
@@ -543,15 +517,9 @@ const char* Aquaduino::getXivelyFeed() {
  * operation fails -1 is returned.
  */
 int8_t Aquaduino::addController(Controller* newController) {
-	char buffer[5] = { 0 };
 
-	int8_t idx = m_Controllers.add(newController);
-	if (idx != -1) {
-		buffer[0] = 'C';
-		itoa(idx, &buffer[1], 10);
-		m_Controllers[idx]->setURL(buffer);
-	}
-	return idx;
+	return m_Controllers.add(newController);
+
 }
 
 /**
@@ -621,15 +589,9 @@ unsigned char Aquaduino::getNrOfControllers() {
  * operation fails -1 is returned.
  */
 int8_t Aquaduino::addActuator(Actuator* newActuator) {
-	char buffer[5] = { 0 };
 
-	int8_t idx = m_Actuators.add(newActuator);
-	if (idx != -1) {
-		buffer[0] = 'A';
-		itoa(idx, &buffer[1], 10);
-		newActuator->setURL(buffer);
-	}
-	return idx;
+	return m_Actuators.add(newActuator);
+
 }
 
 /**
@@ -748,15 +710,9 @@ unsigned char Aquaduino::getNrOfActuators() {
 }
 
 int8_t Aquaduino::addSensor(Sensor* newSensor) {
-	char buffer[5] = { 0 };
 
-	int8_t idx = m_Sensors.add(newSensor);
-	if (idx != -1) {
-		buffer[0] = 'S';
-		itoa(idx, &buffer[1], 10);
-		newSensor->setURL(buffer);
-	}
-	return idx;
+	return m_Sensors.add(newSensor);
+
 }
 
 Sensor* Aquaduino::getSensor(unsigned int sensor) {
@@ -796,9 +752,8 @@ OneWireHandler* Aquaduino::getOneWireHandler() {
 const uint16_t Aquaduino::m_Size = sizeof(m_MAC) + sizeof(uint32_t)
 		+ sizeof(uint32_t) + sizeof(uint32_t) + sizeof(uint32_t)
 		+ sizeof(uint32_t) + sizeof(m_NTPSyncInterval) + sizeof(m_DHCP)
-		+ sizeof(m_NTP) + sizeof(m_Timezone) + sizeof(m_Xively)
-		+ sizeof(m_XivelyAPIKey) + sizeof(m_XivelyFeed)
-		+ sizeof(m_XivelyChannelNames);
+		+ sizeof(m_NTP) + sizeof(m_Timezone) + sizeof(m_SCProConnectionKey)
+		+ sizeof(m_SCProSerial);
 
 /**
  * \brief Serializes the Aquaduino configuration
@@ -826,11 +781,10 @@ uint16_t Aquaduino::serialize(Stream* s) {
  * failed.
  */
 uint16_t Aquaduino::deserialize(Stream* s) {
-
+	Serial.println(F("deserialize"));
 	uint16_t stringLength = 0;
-	uint16_t xivelyFeedNameLength = 0;
-	uint16_t xivelyApiKeyLength = 0;
-	uint16_t xivelyChannelNameLength = 0;
+	uint16_t scProSerialLength = 0;
+	uint16_t scProConnectionKeyLength = 0;
 	uint16_t nrOfActuators = 0;
 	uint16_t nrOfControllers = 0;
 	uint16_t nrOfSensors = 0;
@@ -838,16 +792,13 @@ uint16_t Aquaduino::deserialize(Stream* s) {
 	uint16_t i = 0;
 	uint16_t size = s->available();
 
-	memset(m_XivelyAPIKey, 0, sizeof(m_XivelyAPIKey));
-	memset(m_XivelyFeedName, 0, sizeof(m_XivelyFeedName));
-	memset(m_XiveleyDatastreams, 0, sizeof(m_XiveleyDatastreams));
-	memset(m_XivelyChannelNames, 0, sizeof(m_XivelyChannelNames));
+	memset(m_SCProConnectionKey, 0, sizeof(m_SCProConnectionKey) + 1);
+	memset(m_SCProSerial, 0, sizeof(m_SCProSerial) + 1);
 
 	if (size >= 7) {
 		stringLength = s->read();
-		xivelyFeedNameLength = s->read();
-		xivelyApiKeyLength = s->read();
-		xivelyChannelNameLength = s->read();
+		scProSerialLength = s->read();
+		scProConnectionKeyLength = s->read();
 		nrOfActuators = s->read();
 		nrOfControllers = s->read();
 		nrOfSensors = s->read();
@@ -856,20 +807,19 @@ uint16_t Aquaduino::deserialize(Stream* s) {
 	// See Main.java in Aquaduino-Config for calculation
 	calculatedSize = 7
 			+ ((nrOfActuators + nrOfControllers + nrOfSensors) * stringLength)
-			+ (3 * nrOfActuators) + nrOfControllers + (2 * nrOfSensors)
-			+ (nrOfSensors * xivelyChannelNameLength) + 6 + 1 + 4 + 4 + 4 + 1
-			+ 4 + 1 + 1 + 1 + xivelyApiKeyLength + xivelyFeedNameLength;
+			+ (3 * nrOfActuators) + nrOfControllers + (3 * nrOfSensors);
+	+6 + 1 + 4 + 4 + 4 + 4 + 1 + 4 + 1 + 1 + 1 + scProSerialLength
+			+ scProConnectionKeyLength;
 
 	if ((calculatedSize != size) || (stringLength != AQUADUINO_STRING_LENGTH)
-			|| (xivelyFeedNameLength != XIVELY_FEED_NAME_LENGTH)
-			|| (xivelyApiKeyLength != XIVELY_API_KEY_LENGTH)
-			|| (xivelyChannelNameLength != XIVELY_CHANNEL_NAME_LENGTH)
+			|| (scProSerialLength != SCPRO_SERIAL_LENGTH)
+			|| (scProConnectionKeyLength != SCPRO_CONNECTION_KEY_LENGTH)
 			|| (nrOfActuators > MAX_ACTUATORS)
 			|| (nrOfControllers > MAX_CONTROLLERS)
 			|| (nrOfSensors > MAX_SENSORS)) {
-		Serial.println(F("Invalid configuration file size!"));
+		Serial.println(F("Invalid configuration file size! XIVELY REMOVED!"));
 		Serial.print(calculatedSize);
-		Serial.print("?=");
+		Serial.print(" != ");
 		Serial.println(size);
 	}
 
@@ -885,12 +835,10 @@ uint16_t Aquaduino::deserialize(Stream* s) {
 
 		switch (typeId) {
 		case 1:
-			Serial.print(F("Adding Digitaloutput actuator @  Pin: "));
+			Serial.print(F("Adding I/O actuator @  Pin: "));
 			Serial.print(portId);
 			Serial.print(" On @ ");
 			Serial.print(onValue == 1 ? 1 : 0);
-			Serial.print(" Off @ ");
-			Serial.println(onValue == 1 ? 0 : 1);
 			actuator = new DigitalOutput(name, onValue == 1 ? 1 : 0,
 					onValue == 1 ? 0 : 1);
 			((DigitalOutput*) actuator)->setPin(portId);
@@ -938,18 +886,20 @@ uint16_t Aquaduino::deserialize(Stream* s) {
 	for (i = 0; i < nrOfSensors; i++) {
 
 		char name[stringLength];
-		char xivelyChannel[xivelyChannelNameLength];
 		s->readBytes(name, stringLength);
 		uint8_t typeId = s->read();
 		uint8_t portId = s->read();
-		s->readBytes(xivelyChannel, xivelyChannelNameLength);
+		uint8_t scProChannel = s->read();
+
 		Sensor* sensor;
 		int8_t idx;
 
 		switch (typeId) {
 		case 1:
 			Serial.print(F("Adding Digitalinpiut sensor @  Pin: "));
-			Serial.println(portId);
+			Serial.print(portId);
+			Serial.print(" scpro: ");
+			Serial.println(scProChannel);
 			sensor = new DigitalInput();
 			((DigitalInput*) sensor)->setPin(portId);
 			((DigitalInput*) sensor)->setName(name);
@@ -957,21 +907,35 @@ uint16_t Aquaduino::deserialize(Stream* s) {
 		case 2:
 			sensor = new DS18S20();
 			Serial.print(F("Adding DS18S20 sensor @  Pin: "));
-			Serial.println(portId);
+			Serial.print(portId);
+			Serial.print(" scpro: ");
+			Serial.println(scProChannel);
 			((DS18S20*) sensor)->setPin(portId);
 			((DS18S20*) sensor)->setName(name);
 			m_OneWireHandler->addPin(portId);
 			break;
 		case 3:
 			sensor = new SerialAtlasPH();
+			Serial.print(F("Adding SerialAtlasPH sensor @  Serial: "));
+			Serial.print(portId);
+			Serial.print(" scpro: ");
+			Serial.println(scProChannel);
 			((SerialAtlasPH*) sensor)->setName(name);
 			break;
 		case 4:
 			sensor = new SerialAtlasEC();
+			Serial.print(F("Adding SerialAtlasEC sensor @  Serial: "));
+			Serial.print(portId);
+			Serial.print(" scpro: ");
+			Serial.println(scProChannel);
 			((SerialAtlasEC*) sensor)->setName(name);
 			break;
 		case 5:
 			sensor = new SerialAtlasORP();
+			Serial.print(F("Adding SerialAtlasORP sensor @  Serial: "));
+			Serial.print(portId);
+			Serial.print(" scpro: ");
+			Serial.println(scProChannel);
 			((SerialAtlasORP*) sensor)->setName(name);
 			break;
 		default:
@@ -980,8 +944,8 @@ uint16_t Aquaduino::deserialize(Stream* s) {
 		}
 
 		if ((sensor != NULL) && (idx = __aquaduino->addSensor(sensor)) != -1) {
-			memcpy(m_XivelyChannelNames[idx], xivelyChannel,
-					xivelyChannelNameLength);
+			/*memcpy(m_XivelyChannelNames[idx], xivelyChannel,
+			 xivelyChannelNameLength);*/
 			readConfig(sensor);
 		}
 	}
@@ -1028,6 +992,16 @@ uint16_t Aquaduino::deserialize(Stream* s) {
 	}
 	Serial.println();
 
+	Serial.print(F("DNS: "));
+	for (int i = 0; i < 4; i++) {
+		m_DNSServer[i] = s->read();
+		Serial.print(m_DNSServer[i]);
+		if (i != 3)
+			Serial.print(".");
+
+	}
+	Serial.println();
+
 	s->readBytes((char*) &m_NTP, 1);
 	Serial.print(F("NTP: "));
 	Serial.println(m_NTP);
@@ -1051,17 +1025,17 @@ uint16_t Aquaduino::deserialize(Stream* s) {
 	Serial.print(F("Timezone: "));
 	Serial.println(m_Timezone);
 
-	s->readBytes((char*) &m_Xively, sizeof(m_Xively));
-	Serial.print(F("Xively: "));
-	Serial.println(m_Xively);
+	s->readBytes((char*) &m_SCPro, sizeof(m_SCPro));
+	Serial.print(F("SCPro: "));
+	Serial.println(m_SCPro);
 
-	s->readBytes((char*) &m_XivelyAPIKey, sizeof(m_XivelyAPIKey));
-	Serial.print(F("Xively API Key: "));
-	Serial.println(m_XivelyAPIKey);
+	s->readBytes((char*) &m_SCProConnectionKey, SCPRO_CONNECTION_KEY_LENGTH);
+	Serial.print(F("SCPro Connection Key: "));
+	Serial.println(m_SCProConnectionKey);
 
-	s->readBytes((char*) &m_XivelyFeedName, sizeof(m_XivelyFeedName));
-	Serial.print(F("Xively Feed Name: "));
-	Serial.println(m_XivelyFeedName);
+	s->readBytes((char*) &m_SCProSerial, SCPRO_SERIAL_LENGTH);
+	Serial.print(F("SCPro Serial: "));
+	Serial.println(m_SCProSerial);
 
 	return size;
 }
@@ -1159,7 +1133,7 @@ int8_t Aquaduino::readConfig(Aquaduino* aquaduino) {
 
 	if (m_ConfigManager != NULL) {
 		Serial.println(F("Reading aqua.cfg..."));
-		m_ConfigManager->readConfig(aquaduino);
+		Serial.println(m_ConfigManager->readConfig(aquaduino));
 		Serial.println(F("Reading aqua.cfg finished."));
 	}
 	return 0;
@@ -1241,13 +1215,15 @@ void Aquaduino::readSensors() {
 		currentSensor = m_Sensors.get(sensorIdx);
 		if (currentSensor) {
 			m_SensorReadings[sensorIdx] = currentSensor->read();
-			m_XiveleyDatastreams[sensorIdx]->setFloat(
-					m_SensorReadings[sensorIdx]);
+			m_SCProPutchannelRequest->updateValue(0, sensorIdx,
+					currentSensor->getType(),
+					m_SensorReadings[sensorIdx] * 1000);
 		} else {
 			m_SensorReadings[sensorIdx] = 0.0;
-			m_XiveleyDatastreams[sensorIdx]->setFloat(0.0);
+
 		}
 	}
+
 }
 
 void Aquaduino::executeControllers() {
@@ -1277,10 +1253,18 @@ void Aquaduino::run() {
 #endif
 
 	/*if (isXivelyEnabled() && minute() != curMin) {
+	 curMin = minute();
+	 Serial.print(F("Sending data to Xively... "));
+	 Serial.println(m_XivelyClient.put(*m_XivelyFeed, m_XivelyAPIKey));
+	 }*/
+
+	if (isSCProEnabled() && minute() != curMin) {
 		curMin = minute();
-		Serial.print(F("Sending data to Xively... "));
-		Serial.println(m_XivelyClient.put(*m_XivelyFeed, m_XivelyAPIKey));
-	}*/
+		Serial.print(F("Sending data to SCPro... "));
+		Serial.print("http Result:" );
+		Serial.println(m_SCProClient.put(m_SCProPutchannelRequest));
+
+	}
 
 	if (m_GUIServer != NULL) {
 		m_GUIServer->run();

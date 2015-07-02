@@ -11,7 +11,7 @@ d		:= $(dir)
 
 # Local variables
 
-OBJS_$(d)	:= $(d)/SCProClient.o
+OBJS_$(d)	:= $(d)/SCProClient.o $(d)/HexConverter.o $(d)/BinMessageParser.o $(d)/PutchannelRequest.o $(d)/PutchannelRequestChannel.o $(d)/PutchannelRequestSource.o $(d)/HexSerializeable.o
 DEPS_$(d)	:= $(OBJS_$(d):%=%.d)
 CLEAN		:= $(CLEAN) $(OBJS_$(d)) $(DEPS_$(d))
 

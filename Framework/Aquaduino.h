@@ -24,7 +24,7 @@
 #include <Arduino.h>
 #include <Ethernet.h>
 #include <HttpClient.h>
-#include <Xively.h>
+//#include <Xively.h>
 #include <SCPro.h>
 
 #include "Framework/FrameworkConfig.h"
@@ -102,16 +102,16 @@ public:
                  int8_t month, int16_t year);
 
 
-    void initXively();
-    void enableXively();
-    void disableXively();
-    int8_t isXivelyEnabled();
+   // void initXively();
+   // void enableXively();
+   // void disableXively();
+   // int8_t isXivelyEnabled();
 
-    void setXivelyApiKey(const char* key);
-    const char* getXivelyApiKey();
+   // void setXivelyApiKey(const char* key);
+   // const char* getXivelyApiKey();
 
-    void setXivelyFeed(const char* feed);
-    const char* getXivelyFeed();
+   // void setXivelyFeed(const char* feed);
+   // const char* getXivelyFeed();
 
     int8_t addController(Controller* newController);
     Controller* getController(unsigned int controller);
@@ -170,10 +170,14 @@ private:
     uint16_t m_NTPSyncInterval;
     int8_t m_DHCP;
     int8_t m_NTP;
-    int8_t m_Xively;
-    char m_XivelyAPIKey[XIVELY_API_KEY_LENGTH];
-    char m_XivelyFeedName[XIVELY_FEED_NAME_LENGTH];
-    char m_XivelyChannelNames[MAX_SENSORS][XIVELY_CHANNEL_NAME_LENGTH];
+    int8_t m_SCPro;
+    //char* m_SCProConnectionKey;
+    char m_SCProConnectionKey[SCPRO_CONNECTION_KEY_LENGTH];
+    char m_SCProSerial[SCPRO_SERIAL_LENGTH+1];
+   // int8_t m_Xively;
+   // char m_XivelyAPIKey[XIVELY_API_KEY_LENGTH];
+   // char m_XivelyFeedName[XIVELY_FEED_NAME_LENGTH];
+   // char m_XivelyChannelNames[MAX_SENSORS][XIVELY_CHANNEL_NAME_LENGTH];
 
     ArrayMap<Controller*> m_Controllers;
     ArrayMap<Actuator*> m_Actuators;
@@ -183,12 +187,13 @@ private:
     OneWireHandler* m_OneWireHandler;
     GUIServer* m_GUIServer;
 
-    XivelyDatastream* m_XiveleyDatastreams[MAX_SENSORS];
-    XivelyFeed* m_XivelyFeed;
+   // XivelyDatastream* m_XiveleyDatastreams[MAX_SENSORS];
+   // XivelyFeed* m_XivelyFeed;
     EthernetClient ethClient;
     //XivelyClient m_XivelyClient;
 
     SCProClient m_SCProClient;
+    CPutchannelRequest *m_SCProPutchannelRequest;
     void initSCPro();
 
     static const uint16_t m_Size;

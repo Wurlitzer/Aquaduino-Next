@@ -211,7 +211,7 @@ uint16_t SDConfigManager::readConfig(Aquaduino* aquaduino)
 
 	strcat(path, m_folder);
 	strcat(path, "/");
-	strcat(path, "aqua.cfg");
+	strcat(path, "aquas.cfg");
 
 	if (SD.exists(path))
 	{

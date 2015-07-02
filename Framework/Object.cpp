@@ -38,7 +38,7 @@ Object::Object()
 Object::Object(const char* name, const char* url)
 {
     setName(name);
-    setURL(url);
+    //setURL(url);
     m_Type = 0;
 }
 
@@ -79,21 +79,7 @@ const char* Object::getName()
  *
  * The url is copied to the member variable of this object.
  */
-void Object::setURL(const char* url)
-{
-    strncpy(m_URL, url, sizeof(m_URL));
-    m_URL[sizeof(m_URL) - 1] = 0;
-}
 
-/**
- * \brief Getter for the URL of the object.
- *
- * \returns The URL of this object.
- */
-const char* Object::getURL()
-{
-    return m_URL;
-}
 
 /**
  * \brief Getter for the type of the object.

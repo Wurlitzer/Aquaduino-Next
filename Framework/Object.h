@@ -38,15 +38,11 @@ public:
     void setName(const char* name);
     const char* getName();
 
-    void setURL(const char* url);
-    const char* getURL();
-
     virtual int16_t getType();
 
 protected:
     virtual ~Object();
     char m_Name[AQUADUINO_STRING_LENGTH];
-    char m_URL[AQUADUINO_STRING_LENGTH];
     int16_t m_Type;
 };
 
