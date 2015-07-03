@@ -1258,7 +1258,7 @@ void Aquaduino::run() {
 	 Serial.println(m_XivelyClient.put(*m_XivelyFeed, m_XivelyAPIKey));
 	 }*/
 
-	if (isSCProEnabled() && minute() != curMin) {
+	if (m_SCPro && minute() != curMin) {
 		curMin = minute();
 		Serial.print(F("Sending data to SCPro... "));
 		Serial.print("http Result:" );
