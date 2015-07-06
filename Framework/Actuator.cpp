@@ -96,3 +96,11 @@ int8_t Actuator::isLocked()
 {
     return m_locked;
 }
+/**
+ * \brief sets the operating hours (seconds)
+ *
+ */
+void Actuator::setOperatingTime(uint32_t seconds)
+{
+    m_opTime=seconds;
+}

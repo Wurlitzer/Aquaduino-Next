@@ -49,6 +49,9 @@ public:
     virtual uint16_t readConfig(Controller* controller);
     virtual uint16_t readConfig(Sensor* sensor);
 
+    virtual uint16_t writeOpTime(Aquaduino* aquaduino);
+    virtual uint16_t readOpHours(Aquaduino* aquaduino);
+
 protected:
 
 private:

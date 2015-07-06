@@ -97,21 +97,9 @@ public:
     int8_t isNTPEnabled();
 
 
-
     void setTime(int8_t hour, int8_t minute, int8_t second, int8_t day,
                  int8_t month, int16_t year);
 
-
-   // void initXively();
-   // void enableXively();
-   // void disableXively();
-   // int8_t isXivelyEnabled();
-
-   // void setXivelyApiKey(const char* key);
-   // const char* getXivelyApiKey();
-
-   // void setXivelyFeed(const char* feed);
-   // const char* getXivelyFeed();
 
     int8_t addController(Controller* newController);
     Controller* getController(unsigned int controller);
@@ -149,6 +137,7 @@ public:
     int8_t writeConfig(Actuator* actuator);
     int8_t writeConfig(Controller* controller);
     int8_t writeConfig(Sensor* sensor);
+    int8_t writeOperatingHours(Aquaduino* aquaduino);
 
     int8_t readConfig(Aquaduino* aquaduino);
     int8_t readConfig(Actuator* actuator);

@@ -103,7 +103,6 @@ Aquaduino::Aquaduino() :
 	readConfig(this);
 
 	initNetwork();
-	//initXively();
 
 	//m_SCProConnectionKey = (char*) malloc(
 	//		sizeof(char) * (SCPRO_CONNECTION_KEY_LENGTH + 1));
@@ -131,23 +130,23 @@ Aquaduino::Aquaduino() :
 
 void Aquaduino::initPeripherals() {
 
-	//Init Serial Port
+//Init Serial Port
 	Serial.begin(115200);
 
-	// Deselect all SPI devices!
+// Deselect all SPI devices!
 	pinMode(4, OUTPUT);
 	digitalWrite(4, HIGH);
 	pinMode(10, OUTPUT);
 	digitalWrite(10, HIGH);
 
-	//Initializing SD slot
+//Initializing SD slot
 	if (!SD.begin(4)) {
 		Serial.println(F("No SD Card available"));
 		while (1)
 			;
 	}
 
-	//Setting the PWM frequencies to 31.25kHz
+//Setting the PWM frequencies to 31.25kHz
 	Serial.println(F("Initializing PWM frequency to 31.25 kHz..."));
 	TCCR1A = _BV(WGM11) | _BV(WGM10);
 	TCCR1B = _BV(CS10);
@@ -195,17 +194,17 @@ void Aquaduino::initNetwork() {
 	m_Netmask = Ethernet.subnetMask();
 
 	/*Serial.print(F("IP: "));
-	Serial.println(m_IP);
-	Serial.print(F("Netmask: "));
-	Serial.println(m_Netmask);
-	Serial.print(F("Gateway: "));
-	Serial.println(m_Gateway);
-	Serial.print(F("DNS Server: "));
-	Serial.println(m_DNSServer);
-	Serial.print(F("NTP Server: "));
-	Serial.println(m_NTPServer);*/
+	 Serial.println(m_IP);
+	 Serial.print(F("Netmask: "));
+	 Serial.println(m_Netmask);
+	 Serial.print(F("Gateway: "));
+	 Serial.println(m_Gateway);
+	 Serial.print(F("DNS Server: "));
+	 Serial.println(m_DNSServer);
+	 Serial.print(F("NTP Server: "));
+	 Serial.println(m_NTPServer);*/
 
-	//Init Time. If NTP Sync fails this will be used.
+//Init Time. If NTP Sync fails this will be used.
 	setTime(0, 0, 0, 1, 1, 2015);
 
 	if (isNTPEnabled()) {
@@ -687,7 +686,7 @@ int8_t Aquaduino::getAssignedActuatorIDs(Controller* controller,
 	Actuator* currentActuator;
 	int8_t controllerIdx = m_Controllers.findElement(controller);
 
-	//m_Actuators.resetIterator();
+//m_Actuators.resetIterator();
 	for (actuatorIdx = 0; actuatorIdx < MAX_ACTUATORS; actuatorIdx++) {
 		currentActuator = m_Actuators.get(actuatorIdx);
 		if (currentActuator
@@ -804,7 +803,7 @@ uint16_t Aquaduino::deserialize(Stream* s) {
 		nrOfSensors = s->read();
 	}
 
-	// See Main.java in Aquaduino-Config for calculation
+// See Main.java in Aquaduino-Config for calculation
 	calculatedSize = 7
 			+ ((nrOfActuators + nrOfControllers + nrOfSensors) * stringLength)
 			+ (3 * nrOfActuators) + nrOfControllers + (3 * nrOfSensors);
@@ -838,7 +837,7 @@ uint16_t Aquaduino::deserialize(Stream* s) {
 			Serial.print(F("Adding I/O actuator @  Pin: "));
 			Serial.print(portId);
 			Serial.print(" On @ ");
-			Serial.print(onValue == 1 ? 1 : 0);
+			Serial.println(onValue == 1 ? 1 : 0);
 			actuator = new DigitalOutput(name, onValue == 1 ? 1 : 0,
 					onValue == 1 ? 0 : 1);
 			((DigitalOutput*) actuator)->setPin(portId);
@@ -1016,7 +1015,7 @@ uint16_t Aquaduino::deserialize(Stream* s) {
 	}
 	Serial.println();
 
-	//ToDo: Inconsistent to Aquaduino-Config
+//ToDo: Inconsistent to Aquaduino-Config
 	s->readBytes((char*) &m_NTPSyncInterval, 1);
 	Serial.print(F("NTP Sync Interval: "));
 	Serial.println(m_NTPSyncInterval);
@@ -1119,7 +1118,21 @@ int8_t Aquaduino::writeConfig(Sensor* sensor) {
 	}
 	return 0;
 }
-
+/**
+ * \brief Write operating hours to SD Card
+ * \param[in] sensor The sensor instance of which the configuration
+ *                   shall be written.
+ *
+ * Delegates the call to the ConfigurationManager to write the configuration.
+ *
+ * \returns The number of written bytes. -1 if writing failed.
+ */
+int8_t Aquaduino::writeOperatingHours(Aquaduino* aquaduino) {
+	if (m_ConfigManager != NULL) {
+		m_ConfigManager->writeOpTime(aquaduino);
+	}
+	return 0;
+}
 /**
  * \brief Reads the Aquaduino configuration
  * \param[in] aquaduino The aquaduino instance of which the configuration
@@ -1132,9 +1145,12 @@ int8_t Aquaduino::readConfig(Aquaduino* aquaduino) {
 	IPAddress nm(255, 255, 255, 0);
 
 	if (m_ConfigManager != NULL) {
-		Serial.println(F("Reading aqua.cfg..."));
-		Serial.println(m_ConfigManager->readConfig(aquaduino));
-		Serial.println(F("Reading aqua.cfg finished."));
+		Serial.println(F("Reading aquas.cfg..."));
+		Serial.print(m_ConfigManager->readConfig(aquaduino));
+		Serial.println(F("...Reading aquas.cfg finished."));
+		Serial.print(F("Reading operating hours..."));
+		Serial.print(m_ConfigManager->readOpHours(aquaduino));
+		Serial.println(F("...done"));
 	}
 	return 0;
 }
@@ -1236,6 +1252,10 @@ void Aquaduino::executeControllers() {
 			currentController->run();
 	}
 }
+/*
+int8_t Aquaduino::getTimeSynced() {
+	return m_timeSynced;
+}*/
 
 /**
  * \brief Top level run method.
@@ -1246,6 +1266,7 @@ void Aquaduino::executeControllers() {
  */
 void Aquaduino::run() {
 	static int8_t curMin = minute();
+	static int8_t curHour = hour();
 
 #ifndef INTERRUPT_DRIVEN
 	readSensors();
@@ -1261,14 +1282,20 @@ void Aquaduino::run() {
 	if (m_SCPro && minute() != curMin) {
 		curMin = minute();
 		Serial.print(F("Sending data to SCPro... "));
-		Serial.print("http Result:" );
+		Serial.print("http Result:");
 		Serial.println(m_SCProClient.put(m_SCProPutchannelRequest));
 
-	}
+		//}
+		//if (hour() != curHour) {
+		//	curHour = hour();
+		Serial.print(F("writing operating hours to SD Card... "));
+		writeOperatingHours(__aquaduino);
 
+	}
 	if (m_GUIServer != NULL) {
 		m_GUIServer->run();
 	}
+
 
 }
 
