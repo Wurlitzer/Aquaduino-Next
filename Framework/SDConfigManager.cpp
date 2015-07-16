@@ -19,7 +19,7 @@
  */
 
 #include "SDConfigManager.h"
-#include "SD.h"
+
 #include <Aquaduino.h>
 #include <Framework/ObjectTypes.h>
 
@@ -200,7 +200,7 @@ uint16_t SDConfigManager::readConfig(Aquaduino* aquaduino) {
 
 	strcat(path, m_folder);
 	strcat(path, "/");
-	strcat(path, "aquas.cfg");
+	strcat(path, "airaqua.cfg");
 
 	if (SD.exists(path)) {
 		configFile = SD.open(path, FILE_READ);
@@ -351,20 +351,20 @@ uint16_t SDConfigManager::readOpHours(Aquaduino* aquaduino) {
 	if (SD.exists(path)) {
 		configFile = SD.open(path, FILE_READ);
 		Actuator* actuator;
-		uint32_t val;
+		uint32_t val1;
+		uint32_t val2;
 		uint8_t num = configFile.read();
 		for (int8_t i = 0; i < num; i++) {
 
 			actuator = aquaduino->getActuator(configFile.read());
-			//for (int8_t j = 0; j < 4; j++) {
-			val =  configFile.read() << 24;
-			val +=  configFile.read() << 16;
-			val +=  configFile.read() << 8;
-			val +=  configFile.read();
-			Serial.println(val);
-			//}
+			configFile.readBytes((char*) &val1,4);
+			configFile.readBytes((char*) &val2,4);
 			if (actuator) {
-				actuator->setOperatingTime(val);
+				actuator->setOperatingTime(val1);
+				actuator->setLastResetOperatingTime(val2);
+				//Serial.println();
+				//Serial.println(actuator->getOperatingTime());
+				//Serial.println(actuator->getLastResetOperatingTime());
 			}
 		}
 		configFile.close();
@@ -398,26 +398,42 @@ uint16_t SDConfigManager::writeOpTime(Aquaduino* aquaduino) {
 	uint32_t val;
 
 	Actuator* actuator;
-	int8_t num = 0;
-	__aquaduino->resetActuatorIterator();
-	while (__aquaduino->getNextActuator(&actuator) != -1) {
-		num++;
-	}
-	configFile.write(num);
+
+	configFile.write(__aquaduino->getNrOfActuators());
 	__aquaduino->resetActuatorIterator();
 	while (__aquaduino->getNextActuator(&actuator) != -1) {
 		id = __aquaduino->getActuatorID(actuator);
 		configFile.write(id);
+		//Serial.print(id);
+		//Serial.print(" : ");
 		actuator = __aquaduino->getActuator(id);
 		val = actuator->getOperatingTime();
 		//Serial.println(val);
-		configFile.write((val >> 24) & 0xFF);
-		configFile.write((val >> 16) & 0xFF);
-		configFile.write((val >> 8) & 0xFF);
-		configFile.write(val & 0xFF);
+		writeUint32(configFile,val);
+		val = actuator->getLastResetOperatingTime();
+		writeUint32(configFile,val);
+
+
+
 	}
 //	Serial.println("done");
 	configFile.close();
 
 	return retval;
+}
+void SDConfigManager::writeUint32(File stream,uint32_t value) {
+	uint32_t swapped ;
+	swapped = ((value>>24)&0xff) | ((value<<8)&0xff0000) | ((value>>8)&0xff00) |   ((value<<24)&0xff000000);
+
+	stream.write((swapped >> 24) & 0xFF);
+	stream.write((swapped >> 16) & 0xFF);
+	stream.write((swapped >> 8) & 0xFF);
+	stream.write(swapped & 0xFF);
+
+}
+uint32_t SDConfigManager::readUint32(File stream){
+	uint32_t value;
+
+	return value;
+
 }

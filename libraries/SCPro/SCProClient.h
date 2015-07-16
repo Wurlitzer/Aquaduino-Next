@@ -7,7 +7,7 @@ class SCProClient {
 public:
 	SCProClient(Client& aClient);
 
-	int init(char* server, uint16_t port, char* path, char* serial, char* key,
+	uint8_t init(char* server, uint16_t port, char* path, char* serial, char* key,
 			char* SWVersion);
 	uint8_t get(char* server, uint16_t port, char* path, int8_t myFunction);
 	int16_t put(char* feed, uint8_t length);
@@ -30,9 +30,10 @@ protected:
 	char* m_SWVersion;
 	char* m_Serial;
 	char* m_connectionKey;
-	char m_severURL[65];
+	char m_severURL[33];
 	uint16_t m_severPORT;
-	char m_severPath[65];
+	char m_severPath[33];
 	char m_apikey[65];
+	uint8_t m_apikeySet;
 };
 

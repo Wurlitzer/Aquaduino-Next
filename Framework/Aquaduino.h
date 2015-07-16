@@ -96,6 +96,8 @@ public:
     void disableNTP();
     int8_t isNTPEnabled();
 
+    void initSCPro();
+
 
     void setTime(int8_t hour, int8_t minute, int8_t second, int8_t day,
                  int8_t month, int16_t year);
@@ -160,13 +162,11 @@ private:
     int8_t m_DHCP;
     int8_t m_NTP;
     int8_t m_SCPro;
-    //char* m_SCProConnectionKey;
-    char m_SCProConnectionKey[SCPRO_CONNECTION_KEY_LENGTH];
+    char m_SCProConnectionKey[SCPRO_CONNECTION_KEY_LENGTH+1];
     char m_SCProSerial[SCPRO_SERIAL_LENGTH+1];
-   // int8_t m_Xively;
-   // char m_XivelyAPIKey[XIVELY_API_KEY_LENGTH];
-   // char m_XivelyFeedName[XIVELY_FEED_NAME_LENGTH];
-   // char m_XivelyChannelNames[MAX_SENSORS][XIVELY_CHANNEL_NAME_LENGTH];
+    char m_SCProServer[SCPRO_SERVER_LENGTH+1];
+    uint16_t m_SCProServerPort;
+    char m_SCProServerPath[SCPRO_SERVER_PATH_LENGTH+1];
 
     ArrayMap<Controller*> m_Controllers;
     ArrayMap<Actuator*> m_Actuators;
@@ -176,18 +176,18 @@ private:
     OneWireHandler* m_OneWireHandler;
     GUIServer* m_GUIServer;
 
-   // XivelyDatastream* m_XiveleyDatastreams[MAX_SENSORS];
-   // XivelyFeed* m_XivelyFeed;
+    double m_SensorReadings[MAX_SENSORS];
+
+
     EthernetClient ethClient;
-    //XivelyClient m_XivelyClient;
 
     SCProClient m_SCProClient;
     CPutchannelRequest *m_SCProPutchannelRequest;
-    void initSCPro();
+
 
     static const uint16_t m_Size;
 
-    double m_SensorReadings[MAX_SENSORS];
+
 };
 
 extern Aquaduino* __aquaduino;

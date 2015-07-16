@@ -13,9 +13,9 @@ SCProClient::SCProClient(Client& aClient) :
 	m_hexConverter = new HexConverter();
 	m_binMessageParser = new BinMessageParser();
 }
-int SCProClient::init(char* server, uint16_t port, char* path, char* serial,
+uint8_t SCProClient::init(char* server, uint16_t port, char* path, char* serial,
 		char* key, char* SWVersion) {
-
+	m_apikeySet = 0;
 	/*if (m_severURL != 0) {
 	 free(m_severURL);
 	 }
@@ -26,19 +26,22 @@ int SCProClient::init(char* server, uint16_t port, char* path, char* serial,
 	m_Serial = serial;
 	m_connectionKey = key;
 
-	get(server, port, path, SERVER_MANAGER);
-	Serial.print("..");
-	get(m_severURL, m_severPORT, m_severPath, API_KEY);
-	//Serial.print(m_apikey);
-	Serial.print(F("Free Ram: "));
-	Serial.println(freeRam());
+	uint8_t ret;
+	ret = get(server, port, path, SERVER_MANAGER);
+	Serial.print("http Result: ");
+	Serial.println(ret);
+	if (ret == 200) {
+		ret = get(m_severURL, m_severPORT, m_severPath, API_KEY);
+	}
+
+	return m_apikeySet;
 
 }
 
 uint8_t SCProClient::get(char* server, uint16_t port, char* path,
 		int8_t myFunction) {
 
-	Serial.print(F("SCProClient::get Free Ram: "));
+	Serial.print(F("SCProClient::get -> start with Free Ram: "));
 	Serial.println(freeRam());
 	char functionStr[16];
 
@@ -67,8 +70,12 @@ uint8_t SCProClient::get(char* server, uint16_t port, char* path,
 	int ret = http.get(server, port, pathFunction);
 	if (myFunction == 1) {
 		http.sendHeader("X-Key", m_connectionKey);
-	}	//pathFunction[0] = (char) 0;
+	}
+	Serial.print(server);
+	Serial.print(":");
+	Serial.print(port);
 	Serial.println(pathFunction);
+
 	char* httpResult = NULL;
 
 	if (ret == 0) {
@@ -106,55 +113,59 @@ uint8_t SCProClient::get(char* server, uint16_t port, char* path,
 			httpResult[counter] = 0;
 
 			http.flush();
-			//Serial.print("RAW:");
-			//Serial.println(httpResult);
+			Serial.print("RAW:");
+			Serial.println(httpResult);
 
 		}
 		http.stop();
 
-	}
+		uint8_t binStrLen;
+		uint8_t httpResultLength = strlen(httpResult);
+		binStrLen = m_hexConverter->estimatedBinBufLen(httpResultLength);
+		//Serial.println(binStrLen);
+		//Serial.println(".");
+		m_hexConverter->decodeFromHex(httpResult, httpResultLength, httpResult,
+				0, binStrLen);
 
-	uint8_t binStrLen;
-	uint8_t httpResultLength = strlen(httpResult);
-	binStrLen = m_hexConverter->estimatedBinBufLen(httpResultLength);
-	//Serial.println(binStrLen);
-	//Serial.println(".");
-	m_hexConverter->decodeFromHex(httpResult, httpResultLength, httpResult, 0,
-			binStrLen);
+		switch (myFunction) {
+		case 0:
+			//URL
+			uint8_t nextPos;
+			nextPos = m_binMessageParser->fromBinToString8(m_severURL, 32,
+					httpResult, binStrLen, 0);
+			Serial.print(m_severURL);
+			//Port
 
-	switch (myFunction) {
-	case 0:
-		//URL
-		uint8_t nextPos;
-		nextPos = m_binMessageParser->fromBinToString8(m_severURL, 32,
-				httpResult, binStrLen, 0);
-		Serial.print(m_severURL);
-		//Port
+			m_severPORT = m_binMessageParser->fromBinToInt16(httpResult,
+					binStrLen, nextPos);
+			nextPos += 2;
+			Serial.print(":");
+			Serial.print(m_severPORT);
+			//Path
 
-		m_severPORT = m_binMessageParser->fromBinToInt16(httpResult, binStrLen,
-				nextPos);
-		nextPos += 2;
-		Serial.print(m_severPORT);
-		//Path
+			m_binMessageParser->fromBinToString8(m_severPath, 32, httpResult,
+					binStrLen, nextPos);
+			Serial.println(m_severPath);
+			break;
+		case 1:
 
-		m_binMessageParser->fromBinToString8(m_severPath, 32, httpResult,
-				binStrLen, nextPos);
-		Serial.println(m_severPath);
-		break;
-	case 1:
+			m_binMessageParser->fromBinToString8(m_apikey, 32, httpResult,
+					binStrLen, 0);
+			m_apikeySet = 1;
+			Serial.print("apikey: ");
+			Serial.println(m_apikey);
+			break;
+		}
+	} else {
+		Serial.println("Request not successfull. Check: Server, Port, Path");
 
-		m_binMessageParser->fromBinToString8(m_apikey, 32, httpResult,
-				binStrLen, 0);
-		Serial.print("apikey: ");
-		Serial.println(m_apikey);
-		break;
 	}
 	free(httpResult);
-	return contentLength;
+	return ret;
 }
 
 int16_t SCProClient::put(CPutchannelRequest* request) {
-	Serial.print(F("SCProClient::put Free Ram: "));
+	Serial.print(F("SCProClient::put -> start with Free Ram: "));
 	Serial.println(freeRam());
 
 	uint8_t len = m_hexConverter->estimatedHexBufLen(request->getSize());
@@ -165,11 +176,9 @@ int16_t SCProClient::put(CPutchannelRequest* request) {
 	int16_t result = put(buffer, len);
 	free(buffer);
 
-
 	return result;
 }
 int16_t SCProClient::put(char* feed, uint8_t length) {
-
 
 	HttpClient http(_client);
 

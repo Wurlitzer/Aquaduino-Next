@@ -22,6 +22,7 @@
 #define SDCONFIGMANAGER_H_
 
 #include "ConfigManager.h"
+#include "SD.h"
 
 static const int8_t PREFIX_LENGTH = 12;
 static const int8_t FILENAME_LENGTH = 12;
@@ -51,6 +52,9 @@ public:
 
     virtual uint16_t writeOpTime(Aquaduino* aquaduino);
     virtual uint16_t readOpHours(Aquaduino* aquaduino);
+
+    void writeUint32(File stream,uint32_t value);
+    uint32_t readUint32(File stream);
 
 protected:
 

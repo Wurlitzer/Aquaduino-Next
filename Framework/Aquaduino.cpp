@@ -66,17 +66,6 @@ Aquaduino* __aquaduino;
 extern time_t NTPSync();
 extern int freeRam();
 
-//Pfusch
-
-//char m_SCProSerial[] = "12345678901";
-//char m_SCProConnectionKEY[] = "abce484jrjg65kjd,mvhd64hjdmdkyjsehuwe.-_*/";
-//char m_SCProSWVersion[] = "0.0.1";
-//char m_SCProServerManager[] = "151.252.48.151";
-//uint16_t m_SCProServerManagerPort = 8080;
-//char m_SCProServerManagerPath[] =
-//		"/sprycontrol-dev/api/m/sprycontrol/control-interface/";
-//char m_SCProServerManagerFunctionPath[] = "server-manager/";*/
-
 /**
  * \brief Default Constructor
  *
@@ -95,31 +84,26 @@ Aquaduino::Aquaduino() :
 	m_Type = AQUADUINO;
 
 	initPeripherals();
-	Serial.print(F("Startup Free Ram: "));
-	Serial.println(freeRam());
 
-	//ToDo: Buggy!
 	m_ConfigManager = new SDConfigManager();
 	readConfig(this);
 
 	initNetwork();
 
-	//m_SCProConnectionKey = (char*) malloc(
-	//		sizeof(char) * (SCPRO_CONNECTION_KEY_LENGTH + 1));
-
-	initSCPro();
-
-	//free(m_SCProConnectionKey);
+	if (m_SCPro) {
+		initSCPro();
+	}
 
 #ifdef INTERRUPT_DRIVEN
 	Serial.println("Interrupt triggered mode enabled.");
 	startTimer();
 #else
 	Serial.println("Software triggered mode enabled.");
-	Serial.print(F("Free Ram: "));
-	Serial.println(freeRam());
 #endif
 
+	Serial.print(F("init complete --- Free Ram: "));
+	Serial.println(freeRam());
+	Serial.println();
 }
 
 /**
@@ -171,14 +155,14 @@ void Aquaduino::initPeripherals() {
 
 void Aquaduino::initNetwork() {
 	int8_t status = 0;
-
-	m_MAC[0] = 0xDE;
-	m_MAC[1] = 0xAD;
-	m_MAC[2] = 0xBE;
-	m_MAC[3] = 0xEF;
-	m_MAC[4] = 0xDE;
-	m_MAC[5] = 0xAD;
-
+	/*
+	 m_MAC[0] = 0xDE;
+	 m_MAC[1] = 0xAD;
+	 m_MAC[2] = 0xBE;
+	 m_MAC[3] = 0xEF;
+	 m_MAC[4] = 0xDE;
+	 m_MAC[5] = 0xAD;
+	 */
 	if (m_DHCP) {
 		Serial.println(F("Waiting for DHCP reply..."));
 		status = Ethernet.begin(m_MAC);
@@ -193,16 +177,16 @@ void Aquaduino::initNetwork() {
 	m_Gateway = Ethernet.gatewayIP();
 	m_Netmask = Ethernet.subnetMask();
 
-	/*Serial.print(F("IP: "));
-	 Serial.println(m_IP);
-	 Serial.print(F("Netmask: "));
-	 Serial.println(m_Netmask);
-	 Serial.print(F("Gateway: "));
-	 Serial.println(m_Gateway);
-	 Serial.print(F("DNS Server: "));
-	 Serial.println(m_DNSServer);
-	 Serial.print(F("NTP Server: "));
-	 Serial.println(m_NTPServer);*/
+	Serial.print(F("IP: "));
+	Serial.println(m_IP);
+	Serial.print(F("Netmask: "));
+	Serial.println(m_Netmask);
+	Serial.print(F("Gateway: "));
+	Serial.println(m_Gateway);
+	Serial.print(F("DNS Server: "));
+	Serial.println(m_DNSServer);
+	Serial.print(F("NTP Server: "));
+	Serial.println(m_NTPServer);
 
 //Init Time. If NTP Sync fails this will be used.
 	setTime(0, 0, 0, 1, 1, 2015);
@@ -485,19 +469,20 @@ void Aquaduino::setTime(int8_t hour, int8_t minute, int8_t second, int8_t day,
  }*/
 void Aquaduino::initSCPro() {
 	char SCProSWVersion[] = "0.0.1";
-	char SCProServerManager[] = "151.252.48.151";
-	uint16_t SCProServerManagerPort = 8080;
-	char SCProServerManagerPath[] =
-			"/sprycontrol-dev/api/m/sprycontrol/control-interface/";
 
-	Serial.print(F("SCPro SW Version: "));
+	Serial.print(F("init SCPro SW Version: "));
 	Serial.println(SCProSWVersion);
 
-	m_SCProClient.init(SCProServerManager, SCProServerManagerPort,
-			SCProServerManagerPath, m_SCProSerial, m_SCProConnectionKey,
+	uint8_t ret = m_SCProClient.init(m_SCProServer, m_SCProServerPort,
+			m_SCProServerPath, m_SCProSerial, m_SCProConnectionKey,
 			SCProSWVersion);
 
-	m_SCProPutchannelRequest = new CPutchannelRequest();
+	if (ret == 1) {
+		m_SCProPutchannelRequest = new CPutchannelRequest();
+	} else {
+		m_SCPro = 0;
+	}
+
 
 }
 
@@ -748,12 +733,6 @@ OneWireHandler* Aquaduino::getOneWireHandler() {
  * ============================================================================
  */
 
-const uint16_t Aquaduino::m_Size = sizeof(m_MAC) + sizeof(uint32_t)
-		+ sizeof(uint32_t) + sizeof(uint32_t) + sizeof(uint32_t)
-		+ sizeof(uint32_t) + sizeof(m_NTPSyncInterval) + sizeof(m_DHCP)
-		+ sizeof(m_NTP) + sizeof(m_Timezone) + sizeof(m_SCProConnectionKey)
-		+ sizeof(m_SCProSerial);
-
 /**
  * \brief Serializes the Aquaduino configuration
  * \param[out] buffer pointer to the buffer where the serialized data is going
@@ -780,35 +759,44 @@ uint16_t Aquaduino::serialize(Stream* s) {
  * failed.
  */
 uint16_t Aquaduino::deserialize(Stream* s) {
-	Serial.println(F("deserialize"));
-	uint16_t stringLength = 0;
-	uint16_t scProSerialLength = 0;
-	uint16_t scProConnectionKeyLength = 0;
-	uint16_t nrOfActuators = 0;
-	uint16_t nrOfControllers = 0;
-	uint16_t nrOfSensors = 0;
+	Serial.println("deserialize");
+	uint8_t configVersion = 0;
+	uint8_t stringLength = 0;
+	uint8_t scProSerialLength = 0;
+	uint8_t scProConnectionKeyLength = 0;
+	uint8_t scProServerLength = 0;
+	uint8_t scProServerPathLength = 0;
+	uint8_t nrOfActuators = 0;
+	uint8_t nrOfControllers = 0;
+	uint8_t nrOfSensors = 0;
 	uint16_t calculatedSize = 0;
-	uint16_t i = 0;
+	uint8_t i = 0;
 	uint16_t size = s->available();
 
 	memset(m_SCProConnectionKey, 0, sizeof(m_SCProConnectionKey) + 1);
 	memset(m_SCProSerial, 0, sizeof(m_SCProSerial) + 1);
 
-	if (size >= 7) {
+	if (size >= 9) {
+		configVersion = s->read();
 		stringLength = s->read();
 		scProSerialLength = s->read();
 		scProConnectionKeyLength = s->read();
+		scProServerLength = s->read();
+		scProServerPathLength = s->read();
 		nrOfActuators = s->read();
 		nrOfControllers = s->read();
 		nrOfSensors = s->read();
 	}
 
+	if (configVersion != 3) {
+		Serial.print("Wrong Config File Version: ");
+		Serial.print(configVersion);
+		Serial.println("  should be 3");
+		return 0;
+	}
+
 // See Main.java in Aquaduino-Config for calculation
-	calculatedSize = 7
-			+ ((nrOfActuators + nrOfControllers + nrOfSensors) * stringLength)
-			+ (3 * nrOfActuators) + nrOfControllers + (3 * nrOfSensors);
-	+6 + 1 + 4 + 4 + 4 + 4 + 1 + 4 + 1 + 1 + 1 + scProSerialLength
-			+ scProConnectionKeyLength;
+	calculatedSize = 1059;
 
 	if ((calculatedSize != size) || (stringLength != AQUADUINO_STRING_LENGTH)
 			|| (scProSerialLength != SCPRO_SERIAL_LENGTH)
@@ -816,138 +804,12 @@ uint16_t Aquaduino::deserialize(Stream* s) {
 			|| (nrOfActuators > MAX_ACTUATORS)
 			|| (nrOfControllers > MAX_CONTROLLERS)
 			|| (nrOfSensors > MAX_SENSORS)) {
-		Serial.println(F("Invalid configuration file size! XIVELY REMOVED!"));
+		Serial.println(F("Invalid configuration file size or values!"));
 		Serial.print(calculatedSize);
 		Serial.print(" != ");
 		Serial.println(size);
 	}
-
-	for (i = 0; i < nrOfActuators; i++) {
-
-		char name[stringLength];
-		s->readBytes(name, stringLength);
-		uint8_t typeId = s->read();
-		uint8_t portId = s->read();
-		uint8_t onValue = s->read();
-		Actuator* actuator;
-		int8_t idx;
-
-		switch (typeId) {
-		case 1:
-			Serial.print(F("Adding I/O actuator @  Pin: "));
-			Serial.print(portId);
-			Serial.print(" On @ ");
-			Serial.println(onValue == 1 ? 1 : 0);
-			actuator = new DigitalOutput(name, onValue == 1 ? 1 : 0,
-					onValue == 1 ? 0 : 1);
-			((DigitalOutput*) actuator)->setPin(portId);
-			break;
-		default:
-			actuator = NULL;
-			break;
-		}
-
-		if ((actuator != NULL)
-				&& (idx = __aquaduino->addActuator(actuator)) != -1) {
-			readConfig(actuator);
-		}
-	}
-
-	for (i = 0; i < nrOfControllers; i++) {
-
-		char name[stringLength];
-		s->readBytes(name, stringLength);
-		uint8_t typeId = s->read();
-		Controller* controller;
-		int8_t idx;
-
-		switch (typeId) {
-		case 1:
-			controller = new LevelController(name);
-			break;
-		case 2:
-			controller = new TemperatureController(name);
-			break;
-		case 3:
-			controller = new ClockTimerController(name);
-			break;
-		default:
-			controller = NULL;
-			break;
-		}
-
-		if ((controller != NULL)
-				&& (idx = __aquaduino->addController(controller)) != -1) {
-			readConfig(controller);
-		}
-	}
-
-	for (i = 0; i < nrOfSensors; i++) {
-
-		char name[stringLength];
-		s->readBytes(name, stringLength);
-		uint8_t typeId = s->read();
-		uint8_t portId = s->read();
-		uint8_t scProChannel = s->read();
-
-		Sensor* sensor;
-		int8_t idx;
-
-		switch (typeId) {
-		case 1:
-			Serial.print(F("Adding Digitalinpiut sensor @  Pin: "));
-			Serial.print(portId);
-			Serial.print(" scpro: ");
-			Serial.println(scProChannel);
-			sensor = new DigitalInput();
-			((DigitalInput*) sensor)->setPin(portId);
-			((DigitalInput*) sensor)->setName(name);
-			break;
-		case 2:
-			sensor = new DS18S20();
-			Serial.print(F("Adding DS18S20 sensor @  Pin: "));
-			Serial.print(portId);
-			Serial.print(" scpro: ");
-			Serial.println(scProChannel);
-			((DS18S20*) sensor)->setPin(portId);
-			((DS18S20*) sensor)->setName(name);
-			m_OneWireHandler->addPin(portId);
-			break;
-		case 3:
-			sensor = new SerialAtlasPH();
-			Serial.print(F("Adding SerialAtlasPH sensor @  Serial: "));
-			Serial.print(portId);
-			Serial.print(" scpro: ");
-			Serial.println(scProChannel);
-			((SerialAtlasPH*) sensor)->setName(name);
-			break;
-		case 4:
-			sensor = new SerialAtlasEC();
-			Serial.print(F("Adding SerialAtlasEC sensor @  Serial: "));
-			Serial.print(portId);
-			Serial.print(" scpro: ");
-			Serial.println(scProChannel);
-			((SerialAtlasEC*) sensor)->setName(name);
-			break;
-		case 5:
-			sensor = new SerialAtlasORP();
-			Serial.print(F("Adding SerialAtlasORP sensor @  Serial: "));
-			Serial.print(portId);
-			Serial.print(" scpro: ");
-			Serial.println(scProChannel);
-			((SerialAtlasORP*) sensor)->setName(name);
-			break;
-		default:
-			sensor = NULL;
-			break;
-		}
-
-		if ((sensor != NULL) && (idx = __aquaduino->addSensor(sensor)) != -1) {
-			/*memcpy(m_XivelyChannelNames[idx], xivelyChannel,
-			 xivelyChannelNameLength);*/
-			readConfig(sensor);
-		}
-	}
+	//beginn deserialize
 	s->readBytes((char*) m_MAC, sizeof(m_MAC));
 	Serial.print(F("MAC: "));
 	for (uint8_t i = 0; i < sizeof(m_MAC); i++) {
@@ -1015,8 +877,7 @@ uint16_t Aquaduino::deserialize(Stream* s) {
 	}
 	Serial.println();
 
-//ToDo: Inconsistent to Aquaduino-Config
-	s->readBytes((char*) &m_NTPSyncInterval, 1);
+	s->readBytes((char*) &m_NTPSyncInterval, 2);
 	Serial.print(F("NTP Sync Interval: "));
 	Serial.println(m_NTPSyncInterval);
 
@@ -1024,20 +885,426 @@ uint16_t Aquaduino::deserialize(Stream* s) {
 	Serial.print(F("Timezone: "));
 	Serial.println(m_Timezone);
 
+	for (i = 0; i < nrOfActuators; i++) {
+
+		char name[stringLength];
+		s->readBytes(name, stringLength);
+		uint8_t typeId = s->read();
+		uint8_t portId = s->read();
+		uint8_t onValue = s->read();
+		Actuator* actuator;
+		int8_t idx;
+
+		switch (typeId) {
+		case 1:
+			Serial.print(F("Adding I/O actuator @  Pin: "));
+			Serial.print(portId);
+			Serial.print(" On @ ");
+			Serial.println(onValue == 1 ? 1 : 0);
+			actuator = new DigitalOutput(name, onValue == 1 ? 1 : 0,
+					onValue == 1 ? 0 : 1);
+			((DigitalOutput*) actuator)->setPin(portId);
+			break;
+		default:
+			actuator = NULL;
+			break;
+		}
+		if ((actuator != NULL)
+				&& (idx = __aquaduino->addActuator(actuator)) != -1) {
+			readConfig(actuator);
+		}
+	}
+	Serial.println();
+	for (i = 0; i < nrOfControllers; i++) {
+
+		char name[stringLength];
+		s->readBytes(name, stringLength);
+		uint8_t typeId = s->read();
+		Controller* controller;
+		int8_t idx;
+
+		switch (typeId) {
+		case 1:
+			controller = new LevelController(name);
+			break;
+		case 2:
+			controller = new TemperatureController(name);
+			break;
+		case 3:
+			controller = new ClockTimerController(name);
+			break;
+		default:
+			controller = NULL;
+			break;
+		}
+		if ((controller != NULL)
+				&& (idx = __aquaduino->addController(controller)) != -1) {
+			readConfig(controller);
+		}
+	}
+	Serial.println(__aquaduino->getNrOfControllers());
+	Serial.println();
+	for (i = 0; i < nrOfSensors; i++) {
+
+		char name[stringLength];
+		s->readBytes(name, stringLength);
+		uint8_t typeId = s->read();
+		uint8_t portId = s->read();
+		uint8_t scProChannel = s->read();
+		uint8_t scProChannelType = s->read();
+
+		Sensor* sensor;
+		int8_t idx;
+
+		switch (typeId) {
+		case 1:
+			Serial.print(F("Adding Digitalinpiut sensor @  Pin: "));
+			Serial.print(portId);
+			Serial.print(" scpro: ");
+			Serial.println(scProChannel);
+			sensor = new DigitalInput();
+			((DigitalInput*) sensor)->setPin(portId);
+			((DigitalInput*) sensor)->setName(name);
+			break;
+		case 2:
+			sensor = new DS18S20();
+			Serial.print(F("Adding DS18S20 sensor @  Pin: "));
+			Serial.print(portId);
+			Serial.print(" scpro: ");
+			Serial.println(scProChannel);
+			((DS18S20*) sensor)->setPin(portId);
+			((DS18S20*) sensor)->setName(name);
+			m_OneWireHandler->addPin(portId);
+			break;
+		case 3:
+			sensor = new SerialAtlasPH();
+			Serial.print(F("Adding SerialAtlasPH sensor @  Serial: "));
+			Serial.print(portId);
+			Serial.print(" scpro: ");
+			Serial.println(scProChannel);
+			((SerialAtlasPH*) sensor)->setName(name);
+			break;
+		case 4:
+			sensor = new SerialAtlasEC();
+			Serial.print(F("Adding SerialAtlasEC sensor @  Serial: "));
+			Serial.print(portId);
+			Serial.print(" scpro: ");
+			Serial.println(scProChannel);
+			((SerialAtlasEC*) sensor)->setName(name);
+			break;
+		case 5:
+			sensor = new SerialAtlasORP();
+			Serial.print(F("Adding SerialAtlasORP sensor @  Serial: "));
+			Serial.print(portId);
+			Serial.print(" scpro: ");
+			Serial.println(scProChannel);
+			((SerialAtlasORP*) sensor)->setName(name);
+			break;
+		default:
+			sensor = NULL;
+			break;
+		}
+
+		if ((sensor != NULL) && (idx = __aquaduino->addSensor(sensor)) != -1) {
+			//memcpy(m_XivelyChannelNames[idx], xivelyChannel,
+			// xivelyChannelNameLength);
+			readConfig(sensor);
+		}
+	}
+	Serial.println();
 	s->readBytes((char*) &m_SCPro, sizeof(m_SCPro));
 	Serial.print(F("SCPro: "));
 	Serial.println(m_SCPro);
 
-	s->readBytes((char*) &m_SCProConnectionKey, SCPRO_CONNECTION_KEY_LENGTH);
-	Serial.print(F("SCPro Connection Key: "));
-	Serial.println(m_SCProConnectionKey);
-
 	s->readBytes((char*) &m_SCProSerial, SCPRO_SERIAL_LENGTH);
+	m_SCProSerial[sizeof(m_SCProSerial)-1] = 0;
 	Serial.print(F("SCPro Serial: "));
 	Serial.println(m_SCProSerial);
 
+	s->readBytes((char*) &m_SCProConnectionKey, SCPRO_CONNECTION_KEY_LENGTH);
+	m_SCProConnectionKey[sizeof(m_SCProConnectionKey)-1] = 0;
+	Serial.print(F("SCPro Connection Key: "));
+	Serial.println(m_SCProConnectionKey);
+
+	s->readBytes((char*) &m_SCProServer, SCPRO_SERVER_LENGTH);
+	m_SCProServer[sizeof(m_SCProServer)-1] = 0;
+	Serial.print(F("SCPro Server: "));
+	Serial.println(m_SCProServer);
+
+	//s->readBytes((char*) &m_SCProServerPort, 2);
+	m_SCProServerPort=s->read()<<8;
+	m_SCProServerPort+=s->read();
+
+	Serial.print(F("SCPro ServerPort: "));
+		Serial.println(m_SCProServerPort);
+
+	s->readBytes((char*) &m_SCProServerPath, SCPRO_SERVER_PATH_LENGTH);
+	m_SCProServerPath[sizeof(m_SCProServerPath)-1] = 0;
+	Serial.print(F("SCPro ServerPath: "));
+	Serial.println(m_SCProServerPath);
+
 	return size;
 }
+/*uint16_t Aquaduino::deserialize(Stream* s) {
+ Serial.println(F("deserialize"));
+ uint16_t stringLength = 0;
+ uint16_t scProSerialLength = 0;
+ uint16_t scProConnectionKeyLength = 0;
+
+ uint16_t nrOfActuators = 0;
+ uint16_t nrOfControllers = 0;
+ uint16_t nrOfSensors = 0;
+ uint16_t calculatedSize = 0;
+ uint16_t i = 0;
+ uint16_t size = s->available();
+
+ memset(m_SCProConnectionKey, 0, sizeof(m_SCProConnectionKey) + 1);
+ memset(m_SCProSerial, 0, sizeof(m_SCProSerial) + 1);
+
+ if (size >= 7) {
+ stringLength = s->read();
+ scProSerialLength = s->read();
+ scProConnectionKeyLength = s->read();
+ nrOfActuators = s->read();
+ nrOfControllers = s->read();
+ nrOfSensors = s->read();
+ }
+
+ // See Main.java in Aquaduino-Config for calculation
+ calculatedSize = 7
+ + ((nrOfActuators + nrOfControllers + nrOfSensors) * stringLength)
+ + (3 * nrOfActuators) + nrOfControllers + (3 * nrOfSensors);
+ +6 + 1 + 4 + 4 + 4 + 4 + 1 + 4 + 1 + 1 + 1 + scProSerialLength
+ + scProConnectionKeyLength;
+
+ if ((calculatedSize != size) || (stringLength != AQUADUINO_STRING_LENGTH)
+ || (scProSerialLength != SCPRO_SERIAL_LENGTH)
+ || (scProConnectionKeyLength != SCPRO_CONNECTION_KEY_LENGTH)
+ || (nrOfActuators > MAX_ACTUATORS)
+ || (nrOfControllers > MAX_CONTROLLERS)
+ || (nrOfSensors > MAX_SENSORS)) {
+ Serial.println(F("Invalid configuration file size! XIVELY REMOVED!"));
+ Serial.print(calculatedSize);
+ Serial.print(" != ");
+ Serial.println(size);
+ }
+
+ for (i = 0; i < nrOfActuators; i++) {
+
+ char name[stringLength];
+ s->readBytes(name, stringLength);
+ uint8_t typeId = s->read();
+ uint8_t portId = s->read();
+ uint8_t onValue = s->read();
+ Actuator* actuator;
+ int8_t idx;
+
+ switch (typeId) {
+ case 1:
+ Serial.print(F("Adding I/O actuator @  Pin: "));
+ Serial.print(portId);
+ Serial.print(" On @ ");
+ Serial.println(onValue == 1 ? 1 : 0);
+ actuator = new DigitalOutput(name, onValue == 1 ? 1 : 0,
+ onValue == 1 ? 0 : 1);
+ ((DigitalOutput*) actuator)->setPin(portId);
+ break;
+ default:
+ actuator = NULL;
+ break;
+ }
+
+ if ((actuator != NULL)
+ && (idx = __aquaduino->addActuator(actuator)) != -1) {
+ readConfig(actuator);
+ }
+ }
+
+ for (i = 0; i < nrOfControllers; i++) {
+
+ char name[stringLength];
+ s->readBytes(name, stringLength);
+ uint8_t typeId = s->read();
+ Controller* controller;
+ int8_t idx;
+
+ switch (typeId) {
+ case 1:
+ controller = new LevelController(name);
+ break;
+ case 2:
+ controller = new TemperatureController(name);
+ break;
+ case 3:
+ controller = new ClockTimerController(name);
+ break;
+ default:
+ controller = NULL;
+ break;
+ }
+
+ if ((controller != NULL)
+ && (idx = __aquaduino->addController(controller)) != -1) {
+ readConfig(controller);
+ }
+ }
+
+ for (i = 0; i < nrOfSensors; i++) {
+
+ char name[stringLength];
+ s->readBytes(name, stringLength);
+ uint8_t typeId = s->read();
+ uint8_t portId = s->read();
+ uint8_t scProChannel = s->read();
+
+ Sensor* sensor;
+ int8_t idx;
+
+ switch (typeId) {
+ case 1:
+ Serial.print(F("Adding Digitalinpiut sensor @  Pin: "));
+ Serial.print(portId);
+ Serial.print(" scpro: ");
+ Serial.println(scProChannel);
+ sensor = new DigitalInput();
+ ((DigitalInput*) sensor)->setPin(portId);
+ ((DigitalInput*) sensor)->setName(name);
+ break;
+ case 2:
+ sensor = new DS18S20();
+ Serial.print(F("Adding DS18S20 sensor @  Pin: "));
+ Serial.print(portId);
+ Serial.print(" scpro: ");
+ Serial.println(scProChannel);
+ ((DS18S20*) sensor)->setPin(portId);
+ ((DS18S20*) sensor)->setName(name);
+ m_OneWireHandler->addPin(portId);
+ break;
+ case 3:
+ sensor = new SerialAtlasPH();
+ Serial.print(F("Adding SerialAtlasPH sensor @  Serial: "));
+ Serial.print(portId);
+ Serial.print(" scpro: ");
+ Serial.println(scProChannel);
+ ((SerialAtlasPH*) sensor)->setName(name);
+ break;
+ case 4:
+ sensor = new SerialAtlasEC();
+ Serial.print(F("Adding SerialAtlasEC sensor @  Serial: "));
+ Serial.print(portId);
+ Serial.print(" scpro: ");
+ Serial.println(scProChannel);
+ ((SerialAtlasEC*) sensor)->setName(name);
+ break;
+ case 5:
+ sensor = new SerialAtlasORP();
+ Serial.print(F("Adding SerialAtlasORP sensor @  Serial: "));
+ Serial.print(portId);
+ Serial.print(" scpro: ");
+ Serial.println(scProChannel);
+ ((SerialAtlasORP*) sensor)->setName(name);
+ break;
+ default:
+ sensor = NULL;
+ break;
+ }
+
+ if ((sensor != NULL) && (idx = __aquaduino->addSensor(sensor)) != -1) {
+ //memcpy(m_XivelyChannelNames[idx], xivelyChannel,
+ // xivelyChannelNameLength);
+ readConfig(sensor);
+ }
+ }
+ s->readBytes((char*) m_MAC, sizeof(m_MAC));
+ Serial.print(F("MAC: "));
+ for (uint8_t i = 0; i < sizeof(m_MAC); i++) {
+ Serial.print(m_MAC[i], HEX);
+ if (i != sizeof(m_MAC) - 1)
+ Serial.print(":");
+ }
+ Serial.println();
+
+ s->readBytes((char*) &m_DHCP, sizeof(m_DHCP));
+ Serial.print(F("DHCP: "));
+ Serial.println(m_DHCP);
+
+ Serial.print(F("IP: "));
+ for (int i = 0; i < 4; i++) {
+ m_IP[i] = s->read();
+ Serial.print(m_IP[i]);
+ if (i != 3)
+ Serial.print(".");
+
+ }
+ Serial.println();
+
+ Serial.print(F("Netmask: "));
+ for (int i = 0; i < 4; i++) {
+ m_Netmask[i] = s->read();
+ Serial.print(m_Netmask[i]);
+ if (i != 3)
+ Serial.print(".");
+
+ }
+ Serial.println();
+
+ Serial.print(F("Gateway: "));
+ for (int i = 0; i < 4; i++) {
+ m_Gateway[i] = s->read();
+ Serial.print(m_Gateway[i]);
+ if (i != 3)
+ Serial.print(".");
+
+ }
+ Serial.println();
+
+ Serial.print(F("DNS: "));
+ for (int i = 0; i < 4; i++) {
+ m_DNSServer[i] = s->read();
+ Serial.print(m_DNSServer[i]);
+ if (i != 3)
+ Serial.print(".");
+
+ }
+ Serial.println();
+
+ s->readBytes((char*) &m_NTP, 1);
+ Serial.print(F("NTP: "));
+ Serial.println(m_NTP);
+
+ Serial.print(F("NTP Server: "));
+ for (int i = 0; i < 4; i++) {
+ m_NTPServer[i] = s->read();
+ Serial.print(m_NTPServer[i]);
+ if (i != 3)
+ Serial.print(".");
+
+ }
+ Serial.println();
+
+ //ToDo: Inconsistent to Aquaduino-Config
+ s->readBytes((char*) &m_NTPSyncInterval, 1);
+ Serial.print(F("NTP Sync Interval: "));
+ Serial.println(m_NTPSyncInterval);
+
+ s->readBytes((char*) &m_Timezone, sizeof(m_Timezone));
+ Serial.print(F("Timezone: "));
+ Serial.println(m_Timezone);
+
+ s->readBytes((char*) &m_SCPro, sizeof(m_SCPro));
+ Serial.print(F("SCPro: "));
+ Serial.println(m_SCPro);
+
+ s->readBytes((char*) &m_SCProConnectionKey, SCPRO_CONNECTION_KEY_LENGTH);
+ Serial.print(F("SCPro Connection Key: "));
+ Serial.println(m_SCProConnectionKey);
+
+ s->readBytes((char*) &m_SCProSerial, SCPRO_SERIAL_LENGTH);
+ Serial.print(F("SCPro Serial: "));
+ Serial.println(m_SCProSerial);
+
+ return size;
+ }*/
 
 /**
  * \brief Write Aquaduino configuration
@@ -1227,22 +1494,22 @@ void Aquaduino::readSensors() {
 	int8_t sensorIdx;
 	Sensor* currentSensor;
 
-	for (sensorIdx = 0; sensorIdx < MAX_SENSORS; sensorIdx++) {
+	int8_t num = __aquaduino->getNrOfSensors();
+	for (sensorIdx = 0; sensorIdx < num; sensorIdx++) {
 		currentSensor = m_Sensors.get(sensorIdx);
 		if (currentSensor) {
 			m_SensorReadings[sensorIdx] = currentSensor->read();
-			m_SCProPutchannelRequest->updateValue(0, sensorIdx,
-					currentSensor->getType(),
-					m_SensorReadings[sensorIdx] * 1000);
-		} else {
-			m_SensorReadings[sensorIdx] = 0.0;
-
+			if (m_SCPro) {
+				m_SCProPutchannelRequest->updateValue(0, sensorIdx,
+						currentSensor->getType(),
+						m_SensorReadings[sensorIdx] * 1000);
+			}
 		}
 	}
-
 }
 
 void Aquaduino::executeControllers() {
+
 	int8_t controllerIdx;
 	Controller* currentController;
 
@@ -1253,9 +1520,9 @@ void Aquaduino::executeControllers() {
 	}
 }
 /*
-int8_t Aquaduino::getTimeSynced() {
-	return m_timeSynced;
-}*/
+ int8_t Aquaduino::getTimeSynced() {
+ return m_timeSynced;
+ }*/
 
 /**
  * \brief Top level run method.
@@ -1265,6 +1532,7 @@ int8_t Aquaduino::getTimeSynced() {
  * periodically i.e. within the loop() function of the Arduino environment.
  */
 void Aquaduino::run() {
+
 	static int8_t curMin = minute();
 	static int8_t curHour = hour();
 
@@ -1273,29 +1541,25 @@ void Aquaduino::run() {
 	executeControllers();
 #endif
 
-	/*if (isXivelyEnabled() && minute() != curMin) {
-	 curMin = minute();
-	 Serial.print(F("Sending data to Xively... "));
-	 Serial.println(m_XivelyClient.put(*m_XivelyFeed, m_XivelyAPIKey));
-	 }*/
-
 	if (m_SCPro && minute() != curMin) {
 		curMin = minute();
+		uint16_t result;
 		Serial.print(F("Sending data to SCPro... "));
-		Serial.print("http Result:");
-		Serial.println(m_SCProClient.put(m_SCProPutchannelRequest));
 
-		//}
-		//if (hour() != curHour) {
-		//	curHour = hour();
+		result = m_SCProClient.put(m_SCProPutchannelRequest);
+		Serial.print("http Result:");
+		Serial.println(result);
+	}
+	if (hour() != curHour) {
+		curHour = hour();
 		Serial.print(F("writing operating hours to SD Card... "));
 		writeOperatingHours(__aquaduino);
-
 	}
+
 	if (m_GUIServer != NULL) {
 		m_GUIServer->run();
 	}
-
+	//Serial.println(freeRam());
 
 }
 
@@ -1313,3 +1577,4 @@ int freeRam()
 	int v;
 	return (int) &v - (__brkval == 0 ? (int) &__heap_start : (int) __brkval);
 }
+

@@ -56,7 +56,7 @@ public:
     void setPin(uint8_t pin);
     uint8_t getPin();
 
-    uint32_t getOperatingTime();
+    virtual uint32_t getOperatingTime();
 
 };
 
