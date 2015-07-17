@@ -12,19 +12,18 @@ SCProClient::SCProClient(Client& aClient) :
 		_client(aClient) {
 	m_hexConverter = new HexConverter();
 	m_binMessageParser = new BinMessageParser();
+	m_apikey[0] = 0;
 }
 uint8_t SCProClient::init(char* server, uint16_t port, char* path, char* serial,
 		char* key, char* SWVersion) {
-	m_apikeySet = 0;
-	/*if (m_severURL != 0) {
-	 free(m_severURL);
-	 }
-	 m_severURL = 0;*/
+
 	m_SWVersion = (char*) malloc(16);
 	strncpy(m_SWVersion, SWVersion, 16);
 
+	m_severURL = server;
+	m_severPath = path;
 	m_Serial = serial;
-	m_connectionKey = key;
+	m_apikey = key;
 
 	uint8_t ret;
 	ret = get(server, port, path, SERVER_MANAGER);
@@ -33,8 +32,14 @@ uint8_t SCProClient::init(char* server, uint16_t port, char* path, char* serial,
 	if (ret == 200) {
 		ret = get(m_severURL, m_severPORT, m_severPath, API_KEY);
 	}
+	Serial.print("http Result: ");
+	Serial.println(ret);
 
-	return m_apikeySet;
+	if (ret == 200 && m_apikey[0] != 0)
+		return 1;
+	else {
+		return 0;
+	}
 
 }
 
@@ -51,10 +56,10 @@ uint8_t SCProClient::get(char* server, uint16_t port, char* path,
 
 	switch (myFunction) {
 	case 0:
-		strncpy(functionStr, "server-manager/", 16);
+		strncpy(functionStr, "sm/", 16);
 		break;
 	case 1:
-		strncpy(functionStr, "apikey/", 16);
+		strncpy(functionStr, "ap/", 16);
 
 		break;
 	}
@@ -69,7 +74,7 @@ uint8_t SCProClient::get(char* server, uint16_t port, char* path,
 
 	int ret = http.get(server, port, pathFunction);
 	if (myFunction == 1) {
-		http.sendHeader("X-Key", m_connectionKey);
+		http.sendHeader("X-Key", m_apikey); //temporary stored connection key
 	}
 	Serial.print(server);
 	Serial.print(":");
@@ -87,6 +92,7 @@ uint8_t SCProClient::get(char* server, uint16_t port, char* path,
 		http.endRequest();
 
 		ret = http.responseStatusCode();
+
 		if ((ret < 200) || (ret > 299)) {
 			// It wasn't a successful response, ensure it's -ve so the error is easy to spot
 			if (ret > 0) {
@@ -151,7 +157,7 @@ uint8_t SCProClient::get(char* server, uint16_t port, char* path,
 
 			m_binMessageParser->fromBinToString8(m_apikey, 32, httpResult,
 					binStrLen, 0);
-			m_apikeySet = 1;
+
 			Serial.print("apikey: ");
 			Serial.println(m_apikey);
 			break;
@@ -180,13 +186,14 @@ int16_t SCProClient::put(CPutchannelRequest* request) {
 }
 int16_t SCProClient::put(char* feed, uint8_t length) {
 
+
 	HttpClient http(_client);
 
 	http.beginRequest();
 
 	char pathFunction[254];
 	strncpy(pathFunction, m_severPath, 254);
-	strncat(pathFunction, "channels/", 254);
+	strncat(pathFunction, "ch/", 254);
 	strncat(pathFunction, m_Serial, 254);
 
 	int ret = http.post(m_severURL, m_severPORT, pathFunction);

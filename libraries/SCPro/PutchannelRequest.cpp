@@ -16,7 +16,8 @@ extern int freeRam();
 CPutchannelRequest::CPutchannelRequest() {
 	timestamp = 0;
 	sourceSize = 0;
-	sources = (CPutChannelRequestSource**) malloc(10);
+	//Max 1 Source
+	sources = (CPutChannelRequestSource**) malloc(1*sizeof(CPutChannelRequestSource*));
 }
 
 CPutchannelRequest::~CPutchannelRequest() {
@@ -31,6 +32,7 @@ CPutchannelRequest::~CPutchannelRequest() {
 uint32_t CPutchannelRequest::toHex(char* hexBuf, const uint32_t hexbufLen,
 		const uint32_t startPosStart, HexConverter* hexConverter,
 		BinMessageParser* binMessageParser) {
+
 	uint32_t binStrLen = 4;
 	char binStr[4];
 	uint32_t startPos = startPosStart;
@@ -49,7 +51,7 @@ uint32_t CPutchannelRequest::toHex(char* hexBuf, const uint32_t hexbufLen,
 				binMessageParser);
 	}
 
-	return startPos;
+	//return startPos;
 }
 uint32_t CPutchannelRequest::fromHex(char* hexBuf, const uint32_t hexbufLen,
 		const uint32_t startPos, HexConverter* hexConverter,
@@ -83,7 +85,6 @@ void CPutchannelRequest::updateValue(int8_t sourceId, int8_t channel,
 		}
 	}
 	if (putSource == 0) {
-		//Serial.println("a");
 		putSource = new CPutChannelRequestSource();
 
 		sources[sourceSize] = putSource;
@@ -95,7 +96,6 @@ void CPutchannelRequest::updateValue(int8_t sourceId, int8_t channel,
 		putSource->type = type;
 	}
 	if (putChannel == 0) {
-		//Serial.println("b");
 		putChannel = new CPutchannelRequestChannel();
 
 		putSource->channels[putSource->channelSize] = putChannel;
@@ -107,8 +107,6 @@ void CPutchannelRequest::updateValue(int8_t sourceId, int8_t channel,
 
 	putChannel->value = value;
 
-	//Serial.print(F("updateValue Free Ram end: "));
-	//Serial.println(freeRam());
 }
 uint32_t CPutchannelRequest::getSize() {
 	uint32_t size = 6;
