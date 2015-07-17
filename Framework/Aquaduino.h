@@ -168,6 +168,8 @@ private:
     uint16_t m_SCProServerPort;
     char m_SCProServerPath[SCPRO_SERVER_PATH_LENGTH+1];
 
+    uint8_t syncSec;
+
     ArrayMap<Controller*> m_Controllers;
     ArrayMap<Actuator*> m_Actuators;
     ArrayMap<Sensor*> m_Sensors;

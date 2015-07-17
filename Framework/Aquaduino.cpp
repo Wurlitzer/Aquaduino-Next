@@ -104,6 +104,7 @@ Aquaduino::Aquaduino() :
 	Serial.print(F("init complete --- Free Ram: "));
 	Serial.println(freeRam());
 	Serial.println();
+
 }
 
 /**
@@ -479,10 +480,13 @@ void Aquaduino::initSCPro() {
 
 	if (ret == 1) {
 		m_SCProPutchannelRequest = new CPutchannelRequest();
+		syncSec = second();
+		Serial.print("Second to sync:");
+		Serial.println(syncSec);
+
 	} else {
 		m_SCPro = 0;
 	}
-
 
 }
 
@@ -774,6 +778,8 @@ uint16_t Aquaduino::deserialize(Stream* s) {
 	uint16_t size = s->available();
 
 	memset(m_SCProConnectionKey, 0, sizeof(m_SCProConnectionKey) + 1);
+	memset(m_SCProServer, 0, sizeof(m_SCProServer) + 1);
+
 	memset(m_SCProSerial, 0, sizeof(m_SCProSerial) + 1);
 
 	if (size >= 9) {
@@ -1006,8 +1012,6 @@ uint16_t Aquaduino::deserialize(Stream* s) {
 		}
 
 		if ((sensor != NULL) && (idx = __aquaduino->addSensor(sensor)) != -1) {
-			//memcpy(m_XivelyChannelNames[idx], xivelyChannel,
-			// xivelyChannelNameLength);
 			readConfig(sensor);
 		}
 	}
@@ -1017,29 +1021,29 @@ uint16_t Aquaduino::deserialize(Stream* s) {
 	Serial.println(m_SCPro);
 
 	s->readBytes((char*) &m_SCProSerial, SCPRO_SERIAL_LENGTH);
-	m_SCProSerial[sizeof(m_SCProSerial)-1] = 0;
+	m_SCProSerial[sizeof(m_SCProSerial) - 1] = 0;
 	Serial.print(F("SCPro Serial: "));
 	Serial.println(m_SCProSerial);
 
 	s->readBytes((char*) &m_SCProConnectionKey, SCPRO_CONNECTION_KEY_LENGTH);
-	m_SCProConnectionKey[sizeof(m_SCProConnectionKey)-1] = 0;
+	m_SCProConnectionKey[sizeof(m_SCProConnectionKey) - 1] = 0;
 	Serial.print(F("SCPro Connection Key: "));
 	Serial.println(m_SCProConnectionKey);
 
 	s->readBytes((char*) &m_SCProServer, SCPRO_SERVER_LENGTH);
-	m_SCProServer[sizeof(m_SCProServer)-1] = 0;
+	m_SCProServer[sizeof(m_SCProServer) - 1] = 0;
 	Serial.print(F("SCPro Server: "));
 	Serial.println(m_SCProServer);
 
 	//s->readBytes((char*) &m_SCProServerPort, 2);
-	m_SCProServerPort=s->read()<<8;
-	m_SCProServerPort+=s->read();
+	m_SCProServerPort = s->read() << 8;
+	m_SCProServerPort += s->read();
 
 	Serial.print(F("SCPro ServerPort: "));
-		Serial.println(m_SCProServerPort);
+	Serial.println(m_SCProServerPort);
 
 	s->readBytes((char*) &m_SCProServerPath, SCPRO_SERVER_PATH_LENGTH);
-	m_SCProServerPath[sizeof(m_SCProServerPath)-1] = 0;
+	m_SCProServerPath[sizeof(m_SCProServerPath) - 1] = 0;
 	Serial.print(F("SCPro ServerPath: "));
 	Serial.println(m_SCProServerPath);
 
@@ -1541,11 +1545,12 @@ void Aquaduino::run() {
 	executeControllers();
 #endif
 
-	if (m_SCPro && minute() != curMin) {
+	if (m_SCPro && minute() != curMin && second() >= syncSec) {
+
 		curMin = minute();
 		uint16_t result;
-		Serial.print(F("Sending data to SCPro... "));
 
+		Serial.print(F("Sending data to SCPro... "));
 		result = m_SCProClient.put(m_SCProPutchannelRequest);
 		Serial.print("http Result:");
 		Serial.println(result);
@@ -1559,8 +1564,6 @@ void Aquaduino::run() {
 	if (m_GUIServer != NULL) {
 		m_GUIServer->run();
 	}
-	//Serial.println(freeRam());
-
 }
 
 ISR(TIMER5_OVF_vect)

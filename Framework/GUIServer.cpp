@@ -44,7 +44,8 @@ enum {
 GUIServer::GUIServer(uint16_t port) {
 	m_Port = port;
 	m_UdpServer.begin(m_Port);
-	Serial.println("GUIServer Start");
+	Serial.print("GUIServer Start on port: ");
+	Serial.println(port);
 }
 
 GUIServer::~GUIServer() {
@@ -228,7 +229,7 @@ void GUIServer::getAllSensors() {
 		//Unit:String
 		if (sensor->getType() == 2) {
 			m_UdpServer.write((uint8_t) 2);
-			m_UdpServer.write("¡C");
+			m_UdpServer.write("Â°C");
 		} else {
 			m_UdpServer.write((uint8_t)0);
 		}
