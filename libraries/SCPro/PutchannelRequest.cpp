@@ -64,7 +64,7 @@ void CPutchannelRequest::updateValue(int8_t sourceId, int8_t channel,
 	//Serial.println(freeRam());
 
 	//sourceSize = 1;
-	timestamp = now() - 1400000000;
+	timestamp = now() ;
 
 	CPutChannelRequestSource* putSource = 0;
 	CPutchannelRequestChannel* putChannel = 0;

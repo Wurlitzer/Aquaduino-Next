@@ -17,9 +17,9 @@ SCProClient::SCProClient(Client& aClient) :
 uint8_t SCProClient::init(char* server, uint16_t port, char* path, char* serial,
 		char* key, char* SWVersion) {
 
-	m_SWVersion = (char*) malloc(16);
-	strncpy(m_SWVersion, SWVersion, 16);
-
+	m_SWVersion= (char*) malloc(strlen(SWVersion)+1);
+	memset(m_SWVersion,0,strlen(SWVersion)+1);
+	strncpy(m_SWVersion,  SWVersion,strlen(SWVersion));
 	m_severURL = server;
 	m_severPath = path;
 	m_Serial = serial;
@@ -73,8 +73,9 @@ uint8_t SCProClient::get(char* server, uint16_t port, char* path,
 	strncat(pathFunction, m_Serial, 128);
 
 	int ret = http.get(server, port, pathFunction);
+	http.sendHeader("x-sw",m_SWVersion );
 	if (myFunction == 1) {
-		http.sendHeader("X-Key", m_apikey); //temporary stored connection key
+		http.sendHeader("x-key", m_apikey); //temporary stored connection key
 	}
 	Serial.print(server);
 	Serial.print(":");
@@ -199,8 +200,8 @@ int16_t SCProClient::put(char* feed, uint8_t length) {
 	int ret = http.post(m_severURL, m_severPORT, pathFunction);
 
 	if (ret == 0) {
-		http.sendHeader("X-ApiKey", m_apikey);
-		http.sendHeader("X-SW", m_SWVersion);
+		http.sendHeader("x-apikey", m_apikey);
+		http.sendHeader("x-sw", m_SWVersion);
 		http.sendHeader("Content-Type", "text/plain");
 		http.sendHeader("Content-Length", length);
 
@@ -225,7 +226,7 @@ int16_t SCProClient::put(char* feed, uint8_t length) {
 	return ret;
 }
 /*
- SCProClient::÷SCProClient() {
+ SCProClient::ï¿½SCProClient() {
  free(m_SWVersion);
 
  }*/
