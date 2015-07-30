@@ -23,7 +23,6 @@
 #include <Arduino.h>
 #include <Time.h>
 
-
 /**
  * \brief Constructor
  * \param[in] name Initial name of the Actuator
@@ -92,8 +91,12 @@ void DigitalOutput::on() {
 		else
 			digitalWrite(m_Pin, m_OnValue);
 		m_DutyCycle = 1.0;
+		if (!m_On) {
+			m_startTime = now();
+		}
+
 		m_On = 1;
-		m_startTime = now();
+
 	}
 }
 
