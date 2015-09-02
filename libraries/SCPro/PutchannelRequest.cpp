@@ -14,6 +14,7 @@
 extern int freeRam();
 
 CPutchannelRequest::CPutchannelRequest() {
+	timeOffset=0;
 	timestamp = 0;
 	sourceSize = 0;
 	//Max 1 Source
@@ -64,7 +65,7 @@ void CPutchannelRequest::updateValue(int8_t sourceId, int8_t channel,
 	//Serial.println(freeRam());
 
 	//sourceSize = 1;
-	timestamp = now() ;
+	timestamp = now()-timeOffset*3600 ;
 
 	CPutChannelRequestSource* putSource = 0;
 	CPutchannelRequestChannel* putChannel = 0;
