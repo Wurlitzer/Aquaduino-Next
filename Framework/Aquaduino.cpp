@@ -480,6 +480,7 @@ void Aquaduino::initSCPro() {
 
 	if (ret == 1) {
 		m_SCProPutchannelRequest = new CPutchannelRequest();
+		m_SCProPutchannelRequest->timeOffset=m_Timezone;
 		syncSec = second();
 		Serial.print("Second to sync:");
 		Serial.println(syncSec);
