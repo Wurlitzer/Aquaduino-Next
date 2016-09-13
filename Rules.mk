@@ -68,7 +68,7 @@ size: Aquaduino.elf
 	avr-size Aquaduino.elf
 
 upload: Aquaduino.hex
-	avrdude -C$(AVRDUDECONF) -patmega2560 -cwiring -P$(ARDUINOCOM) -b115200 -D -Uflash:w:Aquaduino.hex:i 
+	avrdude -C$(AVRDUDECONF) -'patmega2560' -cwiring -P$(ARDUINOCOM) -b115200 -D -Uflash:w:Aquaduino.hex:i 
 
 upload_test: ArrayMap_test.hex
 	avrdude -C$(AVRDUDECONF) -patmega2560 -cwiring -P$(ARDUINOCOM) -b115200 -D -Uflash:w:ArrayMap_test.hex:i 

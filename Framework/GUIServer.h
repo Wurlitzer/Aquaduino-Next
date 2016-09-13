@@ -20,6 +20,11 @@ protected:
 	virtual ~GUIServer();
 private:
 	int8_t receiveCommand();
+	void changeActuatorAssignment(int8_t oldActuatorID, int8_t newActuatorID,
+			int8_t controllerID);
+
+	void sendTest(uint8_t val);
+
 	void getAllSensors();
 	void getSensorData(uint8_t sensorId);
 	void getAllActuators();
@@ -29,6 +34,8 @@ private:
 	void getTemperatureController(uint8_t controllerId);
 	void getLevelController(uint8_t controllerId);
 	void getDS1820Addresses();
+	void getOperatingTime(uint8_t actiatorId);
+	void getResetOperatingTime(uint8_t actiatorId);
 
 	void setSensorConfig(uint8_t sensorId);
 	void setActuatorData(uint8_t actuatorId);
@@ -40,8 +47,6 @@ private:
 	void setLevelControllerName(uint8_t controllerId);
 	void resetLevelController(uint8_t controllerId);
 	void setDS1820Address(uint8_t sensorId);
-
-	void write(uint32_t value, EthernetUDP* udpServer);
 
 	uint8_t m_Buffer[50];
 	uint16_t m_Port;

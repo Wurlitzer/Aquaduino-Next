@@ -9,6 +9,7 @@
 #include "PutChannelRequestSource.h"
 #include "stdlib.h"
 //#include <iostream>
+#include <Arduino.h>
 
 CPutChannelRequestSource::CPutChannelRequestSource() {
 	sourceId = 0;
@@ -16,7 +17,8 @@ CPutChannelRequestSource::CPutChannelRequestSource() {
 	channelSize = 0;
 	warnSize = 0;
 	errSize = 0;
-	channels = (CPutchannelRequestChannel**) malloc(10);
+	//max 8 Sensors
+	channels = (CPutchannelRequestChannel**) malloc(8*sizeof(CPutchannelRequestChannel*));
 }
 
 CPutChannelRequestSource::~CPutChannelRequestSource() {
@@ -42,9 +44,9 @@ uint32_t CPutChannelRequestSource::toHex(char* hexBuf, const uint32_t hexbufLen,
 			startPos);
 
 	uint16_t x = 0;
+
 	for (x = 0; x < channelSize; x++) {
-		startPos = channels[x]->toHex(hexBuf, hexbufLen, startPos, hexConverter,
-				binMessageParser);
+		startPos = channels[x]->toHex(hexBuf, hexbufLen, startPos, hexConverter,	binMessageParser);
 	}
 
 	binMessageParser->fromInt16ToBin(warnSize, binStr, binStrLen, 0);

@@ -19,6 +19,8 @@
  */
 
 #include "Actuator.h"
+#include <Framework/Aquaduino.h>
+#include <Time.h>
 
 /**
  * \brief Constructor
@@ -27,19 +29,17 @@
  * The name is copied into the object. Maximum size is AQUADUINO_STRING_LENGTH.
  */
 Actuator::Actuator(const char* name) :
-        m_locked(1)
-{
-    m_ControlledBy = -1;
-    setName(name);
+		m_locked(1) {
+	m_ControlledBy = -1;
+	setName(name);
 }
 
 /**
-    * \brief Destructor.
-    *
-    * Empty.
-    */
-Actuator::~Actuator()
-{
+ * \brief Destructor.
+ *
+ * Empty.
+ */
+Actuator::~Actuator() {
 }
 
 /**
@@ -50,9 +50,8 @@ Actuator::~Actuator()
  * Sets the index of the controller this actuator is assigned to. The index of
  * the controller is available through getControllerID of the Aquaduino class.
  */
-void Actuator::setController(int8_t controller)
-{
-    this->m_ControlledBy = controller;
+void Actuator::setController(int8_t controller) {
+	this->m_ControlledBy = controller;
 }
 
 /**
@@ -60,9 +59,8 @@ void Actuator::setController(int8_t controller)
  *
  * \returns Index of the controller this actuator is assigned to.
  */
-int8_t Actuator::getController()
-{
-    return m_ControlledBy;
+int8_t Actuator::getController() {
+	return m_ControlledBy;
 }
 
 /**
@@ -71,9 +69,8 @@ int8_t Actuator::getController()
  * The actuator is locked and its state shall not be modifiable by the methods
  * on, off and setPWM.
  */
-void Actuator::lock()
-{
-    m_locked = true;
+void Actuator::lock() {
+	m_locked = true;
 }
 
 /**
@@ -82,9 +79,8 @@ void Actuator::lock()
  * The actuator is unlocked and its state can be modified by the methods
  * on, off and setPWM.
  */
-void Actuator::unlock()
-{
-    m_locked = false;
+void Actuator::unlock() {
+	m_locked = false;
 }
 
 /**
@@ -92,7 +88,45 @@ void Actuator::unlock()
  *
  * \returns True when locked. Otherwise false.
  */
-int8_t Actuator::isLocked()
-{
-    return m_locked;
+int8_t Actuator::isLocked() {
+	return m_locked;
+}
+
+/**
+ * \brief sets the operating hours (seconds)
+ *
+ */
+void Actuator::setOperatingTime(uint32_t seconds) {
+	m_opTime = seconds;
+}
+/**
+ * \brief sets the last reset operating hours (seconds)
+ *
+ */
+void Actuator::setLastResetOperatingTime(uint32_t seconds) {
+	m_opResetTime = seconds;
+}
+/**
+ * \brief resets the operating hours (seconds since 1970)
+ *
+ */
+void Actuator::resetOperatingTime() {
+	m_opResetTime = now();
+	m_opTime = 0;
+	__aquaduino->writeOperatingHours(__aquaduino);
+
+}
+/**
+ * \brief returns the last operating hours reset
+ *
+ */
+uint32_t Actuator::getLastResetOperatingTime() {
+	return m_opResetTime;
+
+}
+
+uint32_t Actuator::getOperatingTime() {
+	Serial.println("! override problem in Actuator::getOperatingTime");
+	return 0;
+
 }

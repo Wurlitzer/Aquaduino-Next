@@ -21,6 +21,7 @@
 #include <Framework/Aquaduino.h>
 #include <DigitalOutput.h>
 #include <Arduino.h>
+#include <Time.h>
 
 /**
  * \brief Constructor
@@ -32,52 +33,50 @@
  * inverted (On=0 and Off=1) like normally closed relays.
  */
 DigitalOutput::DigitalOutput(const char* name, uint8_t onValue,
-                             uint8_t offValue) :
-        Actuator(name)
-{
-    m_Type = ACTUATOR_DIGITALOUTPUT;
-    this->m_Pin = 0;
-    this->m_OnValue = onValue;
-    this->m_OffValue = offValue;
-    this->m_locked = false;
-    this->m_DutyCycle = 0.0;
-    this->m_On = 0;
+		uint8_t offValue) :
+		Actuator(name) {
+	m_Type = ACTUATOR_DIGITALOUTPUT;
+	this->m_Pin = 0;
+	this->m_OnValue = onValue;
+	this->m_OffValue = offValue;
+	this->m_locked = false;
+	this->m_DutyCycle = 0.0;
+	this->m_On = 0;
+	this->m_opTime = 0;
 }
 
-uint16_t DigitalOutput::serialize(Stream* s)
-{
-    uint16_t mySize = sizeof(m_OnValue) + sizeof(m_OffValue);
+uint16_t DigitalOutput::serialize(Stream* s) {
+	uint16_t mySize = sizeof(m_OnValue) + sizeof(m_OffValue);
 
 	s->write(&m_OnValue, sizeof(m_OnValue));
 	s->write(&m_OffValue, sizeof(m_OffValue));
 	s->write((uint8_t*) &m_Pin, sizeof(m_Pin));
 	s->write(&m_On, sizeof(m_On));
-	s->write((uint8_t*)&m_DutyCycle, sizeof(m_DutyCycle));
+	s->write((uint8_t*) &m_DutyCycle, sizeof(m_DutyCycle));
 
-    return mySize;
+	return mySize;
 }
 
-uint16_t DigitalOutput::deserialize(Stream* s)
-{
+uint16_t DigitalOutput::deserialize(Stream* s) {
 	uint16_t mySize = sizeof(m_OnValue) + sizeof(m_OffValue);
 
-    if (s->available() < mySize)
-        return 0;
+	if (s->available() < mySize)
+		return 0;
 
-	s->readBytes((char*)&m_OnValue, sizeof(m_OnValue));
-	s->readBytes((char*)&m_OffValue, sizeof(m_OffValue));
-	s->readBytes((char*)&m_Pin, sizeof(m_Pin));
-	s->readBytes((char*)&m_On, sizeof(m_On));
-	s->readBytes((char*)&m_DutyCycle, sizeof(m_DutyCycle));
+	s->readBytes((char*) &m_OnValue, sizeof(m_OnValue));
+	s->readBytes((char*) &m_OffValue, sizeof(m_OffValue));
+	s->readBytes((char*) &m_Pin, sizeof(m_Pin));
+	s->readBytes((char*) &m_On, sizeof(m_On));
+	s->readBytes((char*) &m_DutyCycle, sizeof(m_DutyCycle));
 
-    if (supportsPWM())
-        setPWM(m_DutyCycle);
-    else if (m_On)
-        forceOn();
-    else
-        forceOff();
+	if (supportsPWM())
+		setPWM(m_DutyCycle);
+	else if (m_On)
+		forceOn();
+	else
+		forceOff();
 
-    return mySize;
+	return mySize;
 }
 
 /**
@@ -85,17 +84,20 @@ uint16_t DigitalOutput::deserialize(Stream* s)
  *
  * If not locked writes onValue to the pin
  */
-void DigitalOutput::on()
-{
-    if (!m_locked)
-    {
-        if (supportsPWM())
-            analogWrite(m_Pin, (uint8_t) (m_OnValue * 255));
-        else
-            digitalWrite(m_Pin, m_OnValue);
-        m_DutyCycle = 1.0;
-        m_On = 1;
-    }
+void DigitalOutput::on() {
+	if (!m_locked) {
+		if (supportsPWM())
+			analogWrite(m_Pin, (uint8_t) (m_OnValue * 255));
+		else
+			digitalWrite(m_Pin, m_OnValue);
+		m_DutyCycle = 1.0;
+		if (!m_On) {
+			m_startTime = now();
+		}
+
+		m_On = 1;
+
+	}
 }
 
 /**
@@ -103,18 +105,30 @@ void DigitalOutput::on()
  *
  * If not locked writes offValue to the pin
  */
-void DigitalOutput::off()
-{
-    if (!m_locked)
-    {
-        if (supportsPWM())
-            analogWrite(m_Pin, (uint8_t) (m_OffValue * 255));
-        else
-            digitalWrite(m_Pin, m_OffValue);
-        m_On = 0;
-        m_DutyCycle = 0.0;
-    }
+void DigitalOutput::off() {
+	if (!m_locked) {
+		if (supportsPWM())
+			analogWrite(m_Pin, (uint8_t) (m_OffValue * 255));
+		else
+			digitalWrite(m_Pin, m_OffValue);
+		m_On = 0;
+		m_DutyCycle = 0.0;
+		uint32_t diff = now() - m_startTime;
+		if (diff < 1400000000) {
+			m_opTime += diff;
+		}
+	}
 
+}
+uint32_t DigitalOutput::getOperatingTime() {
+	if (m_On) {
+		uint32_t diff = now() - m_startTime;
+		if (diff < 1400000000) {
+			m_opTime += diff;
+		}
+		m_startTime = now();
+	}
+	return m_opTime;
 }
 
 /**
@@ -122,14 +136,14 @@ void DigitalOutput::off()
  *
  * Writes onValue to the pin.
  */
-void DigitalOutput::forceOn()
-{
-    if (supportsPWM())
-        analogWrite(m_Pin, (uint8_t) (m_OnValue * 255));
-    else
-        digitalWrite(m_Pin, m_OnValue);
-    m_DutyCycle = 1.0;
-    m_On = 1;
+void DigitalOutput::forceOn() {
+	if (supportsPWM())
+		analogWrite(m_Pin, (uint8_t) (m_OnValue * 255));
+	else
+		digitalWrite(m_Pin, m_OnValue);
+	m_DutyCycle = 1.0;
+	m_On = 1;
+	m_startTime = now();
 }
 
 /**
@@ -137,14 +151,17 @@ void DigitalOutput::forceOn()
  *
  * Writes offValue to the pin.
  */
-void DigitalOutput::forceOff()
-{
-    if (supportsPWM())
-        analogWrite(m_Pin, (uint8_t) (m_OffValue * 255));
-    else
-        digitalWrite(m_Pin, m_OffValue);
-    m_DutyCycle = 0.0;
-    m_On = 0;
+void DigitalOutput::forceOff() {
+	if (supportsPWM())
+		analogWrite(m_Pin, (uint8_t) (m_OffValue * 255));
+	else
+		digitalWrite(m_Pin, m_OffValue);
+	m_DutyCycle = 0.0;
+	m_On = 0;
+	uint32_t diff = now() - m_startTime;
+	if (diff < 1400000000) {
+		m_opTime += diff;
+	}
 }
 
 /**
@@ -152,9 +169,8 @@ void DigitalOutput::forceOff()
  *
  * returns state of the actuator
  */
-int8_t DigitalOutput::isOn()
-{
-    return m_On;
+int8_t DigitalOutput::isOn() {
+	return m_On;
 }
 
 /**
@@ -162,9 +178,8 @@ int8_t DigitalOutput::isOn()
  *
  * \returns 0 if not, 1 otherwise.
  */
-int8_t DigitalOutput::supportsPWM()
-{
-    return digitalPinHasPWM(m_Pin);
+int8_t DigitalOutput::supportsPWM() {
+	return digitalPinHasPWM(m_Pin);
 }
 
 /**
@@ -174,20 +189,24 @@ int8_t DigitalOutput::supportsPWM()
  * If the DigitalOutput supports PWM this method enables the PWM mode with
  * the given duty cycle.
  */
-void DigitalOutput::setPWM(float dutyCycle)
-{
-    if (supportsPWM() && dutyCycle <= 1.0)
-    {
-        m_DutyCycle = dutyCycle;
-        if (m_OnValue == 0)
-            analogWrite(m_Pin, (uint8_t) ((1.0 - dutyCycle) * 255));
-        else
-            analogWrite(m_Pin, (uint8_t) (dutyCycle * 255));
-        if (m_DutyCycle > 0)
-            m_On = 1;
-        else
-            m_On = 0;
-    }
+void DigitalOutput::setPWM(float dutyCycle) {
+	if (supportsPWM() && dutyCycle <= 1.0) {
+		m_DutyCycle = dutyCycle;
+		if (m_OnValue == 0)
+			analogWrite(m_Pin, (uint8_t) ((1.0 - dutyCycle) * 255));
+		else
+			analogWrite(m_Pin, (uint8_t) (dutyCycle * 255));
+		if (m_DutyCycle > 0) {
+			m_On = 1;
+			m_startTime = now();
+		} else {
+			m_On = 0;
+			uint32_t diff = now() - m_startTime;
+			if (diff < 1400000000) {
+				m_opTime += diff;
+			}
+		}
+	}
 }
 
 /**
@@ -195,18 +214,15 @@ void DigitalOutput::setPWM(float dutyCycle)
  *
  * \returns Current duty cycle
  */
-float DigitalOutput::getPWM()
-{
-    return m_DutyCycle;
+float DigitalOutput::getPWM() {
+	return m_DutyCycle;
 }
 
-void DigitalOutput::setPin(uint8_t pin)
-{
-    pinMode(pin, OUTPUT);
-    m_Pin = pin;
+void DigitalOutput::setPin(uint8_t pin) {
+	pinMode(pin, OUTPUT);
+	m_Pin = pin;
 }
 
-uint8_t DigitalOutput::getPin()
-{
-    return m_Pin;
+uint8_t DigitalOutput::getPin() {
+	return m_Pin;
 }

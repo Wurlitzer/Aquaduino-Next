@@ -85,6 +85,9 @@
  */
 #define SCPRO_SERIAL_LENGTH     8
 #define SCPRO_CONNECTION_KEY_LENGTH     32
+#define SCPRO_SERVER_LENGTH     32
+#define SCPRO_SERVER_PATH_LENGTH     32
+
 /**
  * \brief Defines the delimiter in URLs to mark the beginning of a subURL
  */

@@ -7,8 +7,8 @@ class SCProClient {
 public:
 	SCProClient(Client& aClient);
 
-	int init(char* server, uint16_t port, char* path, char* serial, char* key,
-			char* SWVersion);
+	uint8_t init(char* server, uint16_t port, char* path, char* serial,
+			char* key, char* SWVersion);
 	uint8_t get(char* server, uint16_t port, char* path, int8_t myFunction);
 	int16_t put(char* feed, uint8_t length);
 	int16_t put(CPutchannelRequest* request);
@@ -16,7 +16,7 @@ public:
 	uint8_t buildSingleFeed(uint8_t channel, uint32_t value, char* buffer,
 			uint8_t maxBuffer);
 
-	//÷SCProClient();
+	//SCProClient();
 
 protected:
 	static const int kCalculateDataLength = 0;
@@ -29,10 +29,11 @@ protected:
 
 	char* m_SWVersion;
 	char* m_Serial;
-	char* m_connectionKey;
-	char m_severURL[65];
+	char* m_severURL;
+
+	char* m_severPath;
+	char* m_apikey;
 	uint16_t m_severPORT;
-	char m_severPath[65];
-	char m_apikey[65];
+
 };
 

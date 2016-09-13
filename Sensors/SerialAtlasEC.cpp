@@ -94,18 +94,18 @@ double SerialAtlasEC::read()
             }
         }
 
-        Serial1.print("25.00,C\r");
-        Serial.println("EC set to send continuous data");
+     //   Serial1.print("25.00,C\r");
+     //   Serial.println("EC set to send continuous data");
         initCounter++;
     }
     //set Temperature every Minute
     if (minute() != curMin)
         {
             curMin = minute();
-            Serial.print(__aquaduino->getSensorValue(tempSensorID));
-            Serial.println((" Set new Temperature to EC"));
-            Serial1.print(__aquaduino->getSensorValue(tempSensorID));
-            Serial1.print(",C\r");
+       //     Serial.print(__aquaduino->getSensorValue(tempSensorID));
+       //     Serial.println((" Set new Temperature to EC"));
+       //     Serial1.print(__aquaduino->getSensorValue(tempSensorID));
+       //     Serial1.print(",C\r");
 
         }
     return actualEC;

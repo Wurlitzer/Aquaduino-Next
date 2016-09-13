@@ -37,14 +37,16 @@ enum {
 	RESET_LEVEL_CONTROLLER = 17,
 	SET_LEVEL_CONTROLLER_NAME = 18,
 	SET_TEMPERATURE_CONTROLLER_NAME = 19,
-	GET_DS1820_ADDRESSES = 20,
-	SET_DS1820_ADDRESS = 21
+	GET_DS1820_ADDRESSES = 101,
+	SET_DS1820_ADDRESS = 102,
+	TEST = 100
 };
 
 GUIServer::GUIServer(uint16_t port) {
 	m_Port = port;
 	m_UdpServer.begin(m_Port);
-	Serial.println("GUIServer Start");
+	Serial.print("GUIServer Start on port: ");
+	Serial.println(port);
 }
 
 GUIServer::~GUIServer() {
@@ -54,6 +56,7 @@ int8_t GUIServer::receiveCommand() {
 	if (!m_UdpServer.parsePacket()) {
 		return 0;
 	}
+
 	Serial.println(("."));
 	Serial.print(F("UDP Packet of "));
 	Serial.print(m_UdpServer.available());
@@ -64,6 +67,7 @@ int8_t GUIServer::receiveCommand() {
 	return 1;
 }
 extern int freeRam();
+
 void GUIServer::run() {
 	if (receiveCommand()) {
 		m_UdpServer.beginPacket(m_UdpServer.remoteIP(),
@@ -74,6 +78,7 @@ void GUIServer::run() {
 		m_UdpServer.write(m_Buffer[0]);
 
 		//trace
+
 		Serial.print(F("Request ID: "));
 		Serial.print(m_Buffer[0]);
 		Serial.print(F("  Method ID: "));
@@ -84,12 +89,11 @@ void GUIServer::run() {
 		Serial.println(m_UdpServer.remoteIP());
 
 		//Serial.println(freeRam());
-
 		//switch to method
 		switch (m_Buffer[1]) {
 		case GET_VERSION:
 			m_UdpServer.write((uint8_t) 0);
-			m_UdpServer.write(2);
+			m_UdpServer.write(3);
 			break;
 		case GET_ALL_SENSORS:
 			getAllSensors();
@@ -148,6 +152,9 @@ void GUIServer::run() {
 		case SET_DS1820_ADDRESS:
 			setDS1820Address(m_Buffer[2]);
 			break;
+		case TEST:
+			sendTest(m_Buffer[2]);
+			break;
 
 		default:
 			break;
@@ -156,11 +163,38 @@ void GUIServer::run() {
 	}
 
 }
-void changeActuatorAssignment(int8_t oldActuatorID, int8_t newActuatorID,
-		int8_t controllerID) {
-	Serial.print("changeActuatorAssignement: ");
-	Serial.print(oldActuatorID);
-	Serial.println(newActuatorID);
+/*void GUIServer::writeInt32(int32_t value) {
+	//int32_t swapped;
+	//swapped = ((value >> 24) & 0xff) | ((value << 8) & 0xff0000)
+	//| ((value >> 8) & 0xff00) | ((value << 24) & 0xff000000);
+	m_UdpServer.write((int8_t) (value >> 24) & 0xFF);
+	m_UdpServer.write((int8_t) (value >> 16) & 0xFF);
+	m_UdpServer.write((int8_t) (value >> 8) & 0xFF);
+	m_UdpServer.write((int8_t) value & 0xFF);
+
+}*/
+
+void GUIServer::sendTest(uint8_t val) {
+	//errorcode 0
+	m_UdpServer.write((uint8_t) 0);
+	//
+	m_UdpServer.write((uint8_t) 100);
+	//
+	m_UdpServer.write((int8_t) -100);
+	//
+	//writeInt32(-287454020);
+	int32_t tmp = -287454020;
+	m_UdpServer.write((uint8_t*) &tmp, sizeof(tmp));
+	//
+	//writeInt32(287454020);
+	tmp = 287454020;
+	m_UdpServer.write((uint8_t*) &tmp, 4);
+}
+void GUIServer::changeActuatorAssignment(int8_t oldActuatorID,
+		int8_t newActuatorID, int8_t controllerID) {
+	//Serial.print("changeActuatorAssignement: ");
+	//Serial.print(oldActuatorID);
+	//Serial.println(newActuatorID);
 	Controller* controller = __aquaduino->getController(controllerID);
 
 	if (oldActuatorID != newActuatorID) {
@@ -168,16 +202,16 @@ void changeActuatorAssignment(int8_t oldActuatorID, int8_t newActuatorID,
 		if (oldActuatorID != -1) {
 			actuator = __aquaduino->getActuator(oldActuatorID);
 			actuator->setController(-1);
-			Serial.println("unset");
+			//	Serial.println("unset");
 			__aquaduino->writeConfig(actuator);
-			Serial.println("done");
+			//	Serial.println("done");
 		}
 		if (newActuatorID != -1) {
 			actuator = __aquaduino->getActuator(newActuatorID);
 			actuator->setController(controllerID);
-			Serial.println("set");
+			//	Serial.println("set");
 			__aquaduino->writeConfig(actuator);
-			Serial.println("done");
+			//	Serial.println("done");
 		}
 	}
 
@@ -202,8 +236,12 @@ void GUIServer::getAllSensors() {
 		//Type:int
 		m_UdpServer.write(sensor->getType());
 		//Unit:String
-		m_UdpServer.write((uint8_t) 8);
-		m_UdpServer.write("TestUnit");
+		if (sensor->getType() == 2) {
+			m_UdpServer.write((uint8_t) 2);
+			m_UdpServer.write("°C");
+		} else {
+			m_UdpServer.write((uint8_t) 0);
+		}
 		//visible:Boolean
 		m_UdpServer.write(true);
 		//calibrationInterval(days):int
@@ -227,20 +265,17 @@ void GUIServer::getSensorData(uint8_t sensorId) {
 
 		//valueAct:float * 1000 -> uint32
 		//write((uint32_t) (__aquaduino->getSensorValue(sensorId) * 1000),&m_UdpServer);
-		uint32_t tmp = __aquaduino->getSensorValue(sensorId) * 1000;
-		m_UdpServer.write((uint8_t*) &tmp, sizeof(int32_t));
+		int32_t tmp = __aquaduino->getSensorValue(sensorId) * 1000;
+		m_UdpServer.write((uint8_t*) &tmp, sizeof(tmp));
 
 		//lastCalibration:dateTime
-		tmp = 1415112618;
-		m_UdpServer.write((uint8_t*) &tmp, sizeof(int32_t));
+		m_UdpServer.write((uint8_t*) &tmp, sizeof(tmp));
 
 		//operatingHours:int
-		tmp = 500;
-		m_UdpServer.write((uint8_t*) &tmp, sizeof(int32_t));
+		m_UdpServer.write((uint8_t*) &tmp, sizeof(tmp));
 
 		//lastOperatingHoursReset
-		tmp = 1415112618;
-		m_UdpServer.write((uint8_t*) &tmp, sizeof(int32_t));
+		m_UdpServer.write((uint8_t*) &tmp, sizeof(tmp));
 
 	} else {
 		//errorcode 10 -> sensor not available
@@ -334,11 +369,13 @@ void GUIServer::getActuatorData(uint8_t actuatorId) {
 		//isLocked:int
 		m_UdpServer.write(actuator->isLocked());
 		//operatingHours:int
-		m_UdpServer.write((uint8_t) 0);
+		uint32_t tmp=actuator->getOperatingTime();
+		m_UdpServer.write((uint8_t*) &tmp, sizeof(tmp));
 		//lastOperatingHoursReset:dateTime
-		m_UdpServer.write((uint32_t) 1395867979);
+		tmp = actuator->getLastResetOperatingTime();
+		m_UdpServer.write((uint8_t*) &tmp, sizeof(tmp));
 		//lastCalibration:dateTime
-		m_UdpServer.write((uint32_t) 1395867979);
+		m_UdpServer.write((uint8_t*) &tmp, sizeof(tmp));
 		//getControllerID
 		m_UdpServer.write(actuator->getController());
 	} else {
@@ -350,13 +387,16 @@ void GUIServer::getActuatorData(uint8_t actuatorId) {
 }
 
 void GUIServer::setActuatorConfig(uint8_t actuatorId) {
+	Serial.print("setActuatorConfig for ActuatorId: ");
+	Serial.println(actuatorId);
 	Actuator* actuator = __aquaduino->getActuator(actuatorId);
 	uint8_t type = m_Buffer[3];
 	if (actuator) {
 		if (type == 1) {
-			//actuator->resetOperatingHours();
-			//errorcode 100 not implemented yet
-			m_UdpServer.write((uint8_t) 100);
+			Serial.println("resetOperatingTime() ");
+			actuator->resetOperatingTime();
+			//errorcode 0
+			m_UdpServer.write((uint8_t) 0);
 		}
 		if (type == 2) {
 			actuator->setName((char*) &m_Buffer[4]);
@@ -445,27 +485,12 @@ void GUIServer::getAllControllers() {
 		m_UdpServer.write(controller->getType());
 	}
 }
-/*
- void GUIServer::setSerialPHConfig(uint8_t sensorId,uint8_t) {
- Sensor* sensor = __aquaduino->getSensor(sensorId);
- if (!sensor) {
- //errorcode 10 -> sensor not available
- m_UdpServer.write((uint8_t) 10);
- }
- switch (sensor->getType()) {
- case SENSOR_SERIALINPUT:
- break;
- case SENSOR_DS18S20:
- break;
- default:
- break;
- }
- }*/
 
 void GUIServer::getClockTimers(uint8_t controllerId) {
 	ClockTimerController* controller;
-	if (__aquaduino->getController(controllerId)->getType()
-			== CONTROLLER_CLOCKTIMER) {
+	if (__aquaduino->getController(controllerId)
+			&& __aquaduino->getController(controllerId)->getType()
+					== CONTROLLER_CLOCKTIMER) {
 		controller = (ClockTimerController*) __aquaduino->getController(
 				controllerId);
 	} else {
@@ -504,8 +529,9 @@ void GUIServer::getClockTimers(uint8_t controllerId) {
 void GUIServer::setClockTimer(uint8_t controllerId) {
 	ClockTimerController* controller;
 	ClockTimer* timer;
-	if (__aquaduino->getController(controllerId)->getType()
-			== CONTROLLER_CLOCKTIMER) {
+	if (__aquaduino->getController(controllerId)
+			&& __aquaduino->getController(controllerId)->getType()
+					== CONTROLLER_CLOCKTIMER) {
 		controller = (ClockTimerController*) __aquaduino->getController(
 				controllerId);
 	} else {
@@ -537,19 +563,19 @@ void GUIServer::setClockTimer(uint8_t controllerId) {
 	if (newActuatorID == 255) {
 		newActuatorID = -1;
 	}
-	Serial.print(
-			"changeActuatorAssignment: [oldActuatorID][newActuatorID][controllerId]: ");
-	Serial.print(oldActuatorID);
-	Serial.print(" ");
-	Serial.print(newActuatorID);
-	Serial.print(" ");
-	Serial.println(controllerId);
+	//Serial.print(
+	//		"changeActuatorAssignment: [oldActuatorID][newActuatorID][controllerId]: ");
+	//Serial.print(oldActuatorID);
+	//Serial.print(" ");
+	//Serial.print(newActuatorID);
+	//Serial.print(" ");
+	//Serial.println(controllerId);
 
 	changeActuatorAssignment(oldActuatorID, newActuatorID, controllerId);
 
-	Serial.print("set clocktimer actuator to: [clocktimer][actuator]");
-	Serial.print(m_Buffer[3]);
-	Serial.println(newActuatorID);
+	//Serial.print("set clocktimer actuator to: [clocktimer][actuator]");
+	//Serial.print(m_Buffer[3]);
+	//Serial.println(newActuatorID);
 
 	controller->assignActuatorToClockTimer(m_Buffer[3], newActuatorID);
 	__aquaduino->writeConfig(controller);
@@ -563,8 +589,9 @@ void GUIServer::setClockTimer(uint8_t controllerId) {
 // Temperature Controller
 void GUIServer::getTemperatureController(uint8_t controllerId) {
 	TemperatureController* controller;
-	if (__aquaduino->getController(controllerId)->getType()
-			== CONTROLLER_TEMPERATURE) {
+	if (__aquaduino->getController(controllerId)
+			&& __aquaduino->getController(controllerId)->getType()
+					== CONTROLLER_TEMPERATURE) {
 		controller = (TemperatureController*) __aquaduino->getController(
 				controllerId);
 	} else {
@@ -595,8 +622,9 @@ void GUIServer::getTemperatureController(uint8_t controllerId) {
 }
 void GUIServer::setTemperatureController(uint8_t controllerId) {
 	TemperatureController* controller;
-	if (__aquaduino->getController(controllerId)->getType()
-			== CONTROLLER_TEMPERATURE) {
+	if (__aquaduino->getController(controllerId)
+			&& __aquaduino->getController(controllerId)->getType()
+					== CONTROLLER_TEMPERATURE) {
 		controller = (TemperatureController*) __aquaduino->getController(
 				controllerId);
 	} else {
@@ -654,8 +682,9 @@ void GUIServer::setTemperatureController(uint8_t controllerId) {
 }
 void GUIServer::setTemperatureControllerName(uint8_t controllerId) {
 	TemperatureController* controller;
-	if (__aquaduino->getController(controllerId)->getType()
-			== CONTROLLER_TEMPERATURE) {
+	if (__aquaduino->getController(controllerId)
+			&& __aquaduino->getController(controllerId)->getType()
+					== CONTROLLER_TEMPERATURE) {
 		controller = (TemperatureController*) __aquaduino->getController(
 				controllerId);
 	} else {
@@ -673,8 +702,9 @@ void GUIServer::setTemperatureControllerName(uint8_t controllerId) {
 
 void GUIServer::getLevelController(uint8_t controllerId) {
 	LevelController* controller;
-	if (__aquaduino->getController(controllerId)->getType()
-			== CONTROLLER_LEVEL) {
+	if (__aquaduino->getController(controllerId)
+			&& __aquaduino->getController(controllerId)->getType()
+					== CONTROLLER_LEVEL) {
 		controller = (LevelController*) __aquaduino->getController(
 				controllerId);
 	} else {
@@ -713,8 +743,9 @@ void GUIServer::getLevelController(uint8_t controllerId) {
 }
 void GUIServer::setLevelController(uint8_t controllerId) {
 	LevelController* controller;
-	if (__aquaduino->getController(controllerId)->getType()
-			== CONTROLLER_LEVEL) {
+	if (__aquaduino->getController(controllerId)
+			&& __aquaduino->getController(controllerId)->getType()
+					== CONTROLLER_LEVEL) {
 		controller = (LevelController*) __aquaduino->getController(
 				controllerId);
 	} else {
@@ -739,8 +770,8 @@ void GUIServer::setLevelController(uint8_t controllerId) {
 	}
 	int8_t oldActuatorID;
 	int8_t newActuatorID = tmp;
-	Serial.print("Set Level actuator: ");
-	Serial.println(newActuatorID);
+	//Serial.print("Set Level actuator: ");
+	//Serial.println(newActuatorID);
 	Actuator* actuator;
 	__aquaduino->resetActuatorIterator();
 	while (__aquaduino->getNextActuator(&actuator) != -1) {
@@ -749,8 +780,8 @@ void GUIServer::setLevelController(uint8_t controllerId) {
 			__aquaduino->writeConfig(actuator);
 //
 			oldActuatorID = __aquaduino->getActuatorID(actuator);
-			Serial.print("found old actuator: ");
-			Serial.println(oldActuatorID);
+			//		Serial.print("found old actuator: ");
+			//		Serial.println(oldActuatorID);
 			//
 			break;
 		}
@@ -763,19 +794,19 @@ void GUIServer::setLevelController(uint8_t controllerId) {
 	}
 	//
 	//
-	__aquaduino->resetActuatorIterator();
-	while (__aquaduino->getNextActuator(&actuator) != -1) {
-		Serial.print(" actuator: [actuatorID][controllerId]");
-		Serial.print(__aquaduino->getActuatorID(actuator));
-		Serial.print(" ");
-		Serial.println(actuator->getController());
-		if (actuator->getController() == controllerId) {
-			Serial.print("found set actuator: ");
-			Serial.println(__aquaduino->getActuatorID(actuator));
-			break;
-		}
+	/*__aquaduino->resetActuatorIterator();
+	 while (__aquaduino->getNextActuator(&actuator) != -1) {
+	 Serial.print(" actuator: [actuatorID][controllerId]");
+	 Serial.print(__aquaduino->getActuatorID(actuator));
+	 Serial.print(" ");
+	 Serial.println(actuator->getController());
+	 if (actuator->getController() == controllerId) {
+	 Serial.print("found set actuator: ");
+	 Serial.println(__aquaduino->getActuatorID(actuator));
+	 break;
+	 }
 
-	}
+	 }*/
 	//
 	//
 	__aquaduino->writeConfig(controller);
@@ -784,8 +815,9 @@ void GUIServer::setLevelController(uint8_t controllerId) {
 }
 void GUIServer::setLevelControllerName(uint8_t controllerId) {
 	LevelController* controller;
-	if (__aquaduino->getController(controllerId)->getType()
-			== CONTROLLER_LEVEL) {
+	if (__aquaduino->getController(controllerId)
+			&& __aquaduino->getController(controllerId)->getType()
+					== CONTROLLER_LEVEL) {
 		controller = (LevelController*) __aquaduino->getController(
 				controllerId);
 	} else {
@@ -801,8 +833,9 @@ void GUIServer::setLevelControllerName(uint8_t controllerId) {
 }
 void GUIServer::resetLevelController(uint8_t controllerId) {
 	LevelController* controller;
-	if (__aquaduino->getController(controllerId)->getType()
-			== CONTROLLER_LEVEL) {
+	if (__aquaduino->getController(controllerId)
+			&& __aquaduino->getController(controllerId)->getType()
+					== CONTROLLER_LEVEL) {
 		controller = (LevelController*) __aquaduino->getController(
 				controllerId);
 	} else {
@@ -821,15 +854,7 @@ void GUIServer::resetLevelController(uint8_t controllerId) {
 //
 // DS1820
 void GUIServer::getDS1820Addresses() {
-	/*DS18S20* sensor;
-	 if (__aquaduino->getSensor(sensorId)->getType() == SENSOR_DS18S20) {
-	 sensor = (DS18S20*) __aquaduino->getSensor(sensorId);
-	 } else {
-	 //errorcode 10
-	 m_UdpServer.write((uint8_t) 10);
-	 m_UdpServer.write(__aquaduino->getSensor(sensorId)->getType());
-	 return;
-	 }*/
+
 	//errorcode 0
 	m_UdpServer.write((uint8_t) 0);
 	//
@@ -846,24 +871,32 @@ void GUIServer::getDS1820Addresses() {
 	}
 }
 void GUIServer::setDS1820Address(uint8_t sensorId) {
+	Serial.print("set DS18S20 Address to sensor:");
+	Serial.println(sensorId);
 	DS18S20* sensor;
-	if (__aquaduino->getSensor(sensorId)->getType() == SENSOR_DS18S20) {
+	if (__aquaduino->getSensor(sensorId)
+			&& __aquaduino->getSensor(sensorId)->getType() == SENSOR_DS18S20) {
 		sensor = (DS18S20*) __aquaduino->getSensor(sensorId);
 	} else {
 		//errorcode 10
 		m_UdpServer.write((uint8_t) 10);
-		m_UdpServer.write(__aquaduino->getSensor(sensorId)->getType());
+
 		return;
 	}
 	//errorcode 0
 	m_UdpServer.write((uint8_t) 0);
 	uint8_t addr[8];
 	uint8_t i = 0;
+	Serial.print("DS18S20 Address:");
 	while (i < 8) {
+		Serial.print(m_Buffer[i + 3]);
+		Serial.print(",");
 		addr[i] = m_Buffer[i + 3];
 		i++;
 	}
+	Serial.println("");
 	sensor->setAddress(addr);
 	__aquaduino->writeConfig(sensor);
 
 }
+

@@ -19,7 +19,7 @@
  */
 
 #include "SDConfigManager.h"
-#include "SD.h"
+
 #include <Aquaduino.h>
 #include <Framework/ObjectTypes.h>
 
@@ -30,9 +30,8 @@ extern int freeRam();
  *
  * Sets empty folder for configuration files.
  */
-SDConfigManager::SDConfigManager()
-{
-    m_folder[0] = 0;
+SDConfigManager::SDConfigManager() {
+	m_folder[0] = 0;
 }
 
 /**
@@ -41,21 +40,19 @@ SDConfigManager::SDConfigManager()
  *
  * Checks if the folder already exists. If not the folder is created.
  */
-SDConfigManager::SDConfigManager(const char* folder)
-{
-    File f;
+SDConfigManager::SDConfigManager(const char* folder) {
+	File f;
 
-    strncpy(m_folder, folder, PREFIX_LENGTH - 1);
-    m_folder[PREFIX_LENGTH - 1] = 0;
+	strncpy(m_folder, folder, PREFIX_LENGTH - 1);
+	m_folder[PREFIX_LENGTH - 1] = 0;
 
-    if (!SD.exists(m_folder))
-        SD.mkdir(m_folder);
-    else
-    {
-        f = SD.open(m_folder, FILE_READ);
-        if (!f.isDirectory())
-            m_folder[0] = 0;
-    }
+	if (!SD.exists(m_folder))
+		SD.mkdir(m_folder);
+	else {
+		f = SD.open(m_folder, FILE_READ);
+		if (!f.isDirectory())
+			m_folder[0] = 0;
+	}
 }
 
 /**
@@ -63,8 +60,7 @@ SDConfigManager::SDConfigManager(const char* folder)
  *
  * Empty.
  */
-SDConfigManager::~SDConfigManager()
-{
+SDConfigManager::~SDConfigManager() {
 }
 
 /**
@@ -72,8 +68,7 @@ SDConfigManager::~SDConfigManager()
  *
  * Empty.
  */
-SDConfigManager::SDConfigManager(SDConfigManager&)
-{
+SDConfigManager::SDConfigManager(SDConfigManager&) {
 }
 
 /**
@@ -81,37 +76,34 @@ SDConfigManager::SDConfigManager(SDConfigManager&)
  *
  * Empty.
  */
-SDConfigManager::SDConfigManager(const SDConfigManager&)
-{
+SDConfigManager::SDConfigManager(const SDConfigManager&) {
 }
 
-uint16_t SDConfigManager::writeConfig(Aquaduino* aquaduino)
-{
+uint16_t SDConfigManager::writeConfig(Aquaduino* aquaduino) {
 	return 0;
 }
 
-uint16_t SDConfigManager::writeConfig(Actuator* actuator)
-{
+uint16_t SDConfigManager::writeConfig(Actuator* actuator) {
 	File configFile;
-    char fileName[FILENAME_LENGTH];
-    char path[PREFIX_LENGTH + FILENAME_LENGTH];
-    int8_t id;
-    int retval = 0;
+	char fileName[FILENAME_LENGTH];
+	char path[PREFIX_LENGTH + FILENAME_LENGTH];
+	int8_t id;
+	int retval = 0;
 
-    memset(path, 0, PREFIX_LENGTH + FILENAME_LENGTH);
+	memset(path, 0, PREFIX_LENGTH + FILENAME_LENGTH);
 
-    id = __aquaduino->getActuatorID(actuator);
-    fileName[0] = 'A';
-    itoa(id, &fileName[1], 10);
-    strcat(fileName, ".cfg");
+	id = __aquaduino->getActuatorID(actuator);
+	fileName[0] = 'A';
+	itoa(id, &fileName[1], 10);
+	strcat(fileName, ".cfg");
 
-    strcat(path, m_folder);
-    strcat(path, "/");
-    strcat(path, fileName);
+	strcat(path, m_folder);
+	strcat(path, "/");
+	strcat(path, fileName);
 
-    Serial.print(F("Writing actuator config to "));
-    Serial.print(path);
-    Serial.println(F(" ..."));
+	Serial.print(F("Writing actuator config to "));
+	Serial.print(path);
+	Serial.println(F(" ..."));
 
 	Serial.print("Serializing...");
 	if (SD.exists(path))
@@ -125,31 +117,30 @@ uint16_t SDConfigManager::writeConfig(Actuator* actuator)
 		Serial.println(F(" Failed!"));
 	configFile.close();
 
-    return retval;
+	return retval;
 }
 
-uint16_t SDConfigManager::writeConfig(Controller* controller)
-{
+uint16_t SDConfigManager::writeConfig(Controller* controller) {
 	File configFile;
-    char fileName[FILENAME_LENGTH];
-    char path[PREFIX_LENGTH + FILENAME_LENGTH];
-    int8_t id;
-    int retval = 0;
+	char fileName[FILENAME_LENGTH];
+	char path[PREFIX_LENGTH + FILENAME_LENGTH];
+	int8_t id;
+	int retval = 0;
 
-    memset(path, 0, PREFIX_LENGTH + FILENAME_LENGTH);
+	memset(path, 0, PREFIX_LENGTH + FILENAME_LENGTH);
 
-    id = __aquaduino->getControllerID(controller);
-    fileName[0] = 'C';
-    itoa(id, &fileName[1], 10);
-    strcat(fileName, ".cfg");
+	id = __aquaduino->getControllerID(controller);
+	fileName[0] = 'C';
+	itoa(id, &fileName[1], 10);
+	strcat(fileName, ".cfg");
 
-    strcat(path, m_folder);
-    strcat(path, "/");
-    strcat(path, fileName);
+	strcat(path, m_folder);
+	strcat(path, "/");
+	strcat(path, fileName);
 
-    Serial.print(F("Writing controller config to "));
-    Serial.print(path);
-    Serial.println(F(" ..."));
+	Serial.print(F("Writing controller config to "));
+	Serial.print(path);
+	Serial.println(F(" ..."));
 
 	Serial.print("Serializing...");
 	if (SD.exists(path))
@@ -162,30 +153,29 @@ uint16_t SDConfigManager::writeConfig(Controller* controller)
 		Serial.println(F(" Failed!"));
 	configFile.close();
 
-    return retval;
+	return retval;
 }
 
-uint16_t SDConfigManager::writeConfig(Sensor* sensor)
-{
+uint16_t SDConfigManager::writeConfig(Sensor* sensor) {
 	File configFile;
-    char fileName[FILENAME_LENGTH];
-    char path[PREFIX_LENGTH + FILENAME_LENGTH];
-    int8_t id;
-    int retval = 0;
+	char fileName[FILENAME_LENGTH];
+	char path[PREFIX_LENGTH + FILENAME_LENGTH];
+	int8_t id;
+	int retval = 0;
 
-    memset(path, 0, PREFIX_LENGTH + FILENAME_LENGTH);
-    id = __aquaduino->getSensorID(sensor);
-    fileName[0] = 'S';
-    itoa(id, &fileName[1], 10);
-    strcat(fileName, ".cfg");
+	memset(path, 0, PREFIX_LENGTH + FILENAME_LENGTH);
+	id = __aquaduino->getSensorID(sensor);
+	fileName[0] = 'S';
+	itoa(id, &fileName[1], 10);
+	strcat(fileName, ".cfg");
 
-    strcat(path, m_folder);
-    strcat(path, "/");
-    strcat(path, fileName);
+	strcat(path, m_folder);
+	strcat(path, "/");
+	strcat(path, fileName);
 
-    Serial.print(F("Writing sensor config to "));
-    Serial.print(path);
-    Serial.println(F(" ..."));
+	Serial.print(F("Writing sensor config to "));
+	Serial.print(path);
+	Serial.println(F(" ..."));
 
 	Serial.print("Serializing...");
 	if (SD.exists(path))
@@ -198,11 +188,10 @@ uint16_t SDConfigManager::writeConfig(Sensor* sensor)
 		Serial.println(F(" Failed!"));
 	configFile.close();
 
-    return retval;
+	return retval;
 }
 
-uint16_t SDConfigManager::readConfig(Aquaduino* aquaduino)
-{
+uint16_t SDConfigManager::readConfig(Aquaduino* aquaduino) {
 	File configFile;
 	char path[PREFIX_LENGTH + FILENAME_LENGTH];
 	int retval = 0;
@@ -211,49 +200,44 @@ uint16_t SDConfigManager::readConfig(Aquaduino* aquaduino)
 
 	strcat(path, m_folder);
 	strcat(path, "/");
-	strcat(path, "aquas.cfg");
+	strcat(path, "airaqua.cfg");
 
-	if (SD.exists(path))
-	{
+	if (SD.exists(path)) {
 		configFile = SD.open(path, FILE_READ);
 		aquaduino->deserialize(&configFile);
 		configFile.close();
-	}
-	else
-	{
+	} else {
 		retval = 1;
 	}
 
-    return retval;
+	return retval;
 }
 
-uint16_t SDConfigManager::readConfig(Actuator* actuator)
-{
+uint16_t SDConfigManager::readConfig(Actuator* actuator) {
 	File configFile;
-    char fileName[FILENAME_LENGTH];
-    char path[PREFIX_LENGTH + FILENAME_LENGTH];
-    char name[AQUADUINO_STRING_LENGTH];
-    int8_t id;
-    int retval = 0;
+	char fileName[FILENAME_LENGTH];
+	char path[PREFIX_LENGTH + FILENAME_LENGTH];
+	char name[AQUADUINO_STRING_LENGTH];
+	int8_t id;
+	int retval = 0;
 
-    memset(path, 0, PREFIX_LENGTH + FILENAME_LENGTH);
+	memset(path, 0, PREFIX_LENGTH + FILENAME_LENGTH);
 
-    id = __aquaduino->getActuatorID(actuator);
-    fileName[0] = 'A';
-    itoa(id, &fileName[1], 10);
-    strcat(fileName, ".cfg");
+	id = __aquaduino->getActuatorID(actuator);
+	fileName[0] = 'A';
+	itoa(id, &fileName[1], 10);
+	strcat(fileName, ".cfg");
 
-    strcat(path, m_folder);
-    strcat(path, "/");
-    strcat(path, fileName);
+	strcat(path, m_folder);
+	strcat(path, "/");
+	strcat(path, fileName);
 
-    Serial.print(F("Reading actuator config from "));
-    Serial.print(path);
-    Serial.println(F(" ..."));
+	Serial.print(F("Reading actuator config from "));
+	Serial.print(path);
+	Serial.println(F(" ..."));
 
-    if (SD.exists(path))
-	{
-    	Serial.print(" File exists! Deserializing...");
+	if (SD.exists(path)) {
+		Serial.print(" File exists! Deserializing...");
 		configFile = SD.open(path, FILE_READ);
 		configFile.read(name, AQUADUINO_STRING_LENGTH);
 		actuator->setName(name);
@@ -263,43 +247,39 @@ uint16_t SDConfigManager::readConfig(Actuator* actuator)
 		else
 			Serial.println(F(" Failed!"));
 		configFile.close();
-	}
-	else
-	{
+	} else {
 		Serial.println(" File does not exist!");
 		retval = 1;
 	}
 
-    return retval;
+	return retval;
 }
 
-uint16_t SDConfigManager::readConfig(Controller* controller)
-{
+uint16_t SDConfigManager::readConfig(Controller* controller) {
 	File configFile;
-    char fileName[FILENAME_LENGTH];
-    char path[PREFIX_LENGTH + FILENAME_LENGTH];
-    char name[AQUADUINO_STRING_LENGTH];
-    int8_t id;
-    int retval = 0;
+	char fileName[FILENAME_LENGTH];
+	char path[PREFIX_LENGTH + FILENAME_LENGTH];
+	char name[AQUADUINO_STRING_LENGTH];
+	int8_t id;
+	int retval = 0;
 
-    memset(path, 0, PREFIX_LENGTH + FILENAME_LENGTH);
+	memset(path, 0, PREFIX_LENGTH + FILENAME_LENGTH);
 
-    id = __aquaduino->getControllerID(controller);
-    fileName[0] = 'C';
-    itoa(id, &fileName[1], 10);
-    strcat(fileName, ".cfg");
+	id = __aquaduino->getControllerID(controller);
+	fileName[0] = 'C';
+	itoa(id, &fileName[1], 10);
+	strcat(fileName, ".cfg");
 
-    strcat(path, m_folder);
-    strcat(path, "/");
-    strcat(path, fileName);
+	strcat(path, m_folder);
+	strcat(path, "/");
+	strcat(path, fileName);
 
-    Serial.print(F("Reading controller config from "));
-    Serial.print(path);
-    Serial.println(F(" ..."));
+	Serial.print(F("Reading controller config from "));
+	Serial.print(path);
+	Serial.println(F(" ..."));
 
-    if (SD.exists(path))
-	{
-    	Serial.print(" File exists! Deserializing...");
+	if (SD.exists(path)) {
+		Serial.print(" File exists! Deserializing...");
 		configFile = SD.open(path, FILE_READ);
 		configFile.read(name, AQUADUINO_STRING_LENGTH);
 		controller->setName(name);
@@ -309,43 +289,39 @@ uint16_t SDConfigManager::readConfig(Controller* controller)
 		else
 			Serial.println(F(" Failed!"));
 		configFile.close();
-	}
-	else
-	{
+	} else {
 		Serial.println(" File does not exist!");
 		retval = 1;
 	}
 
-    return retval;
+	return retval;
 }
 
-uint16_t SDConfigManager::readConfig(Sensor* sensor)
-{
+uint16_t SDConfigManager::readConfig(Sensor* sensor) {
 	File configFile;
-    char fileName[FILENAME_LENGTH];
-    char path[PREFIX_LENGTH + FILENAME_LENGTH];
-    char name[AQUADUINO_STRING_LENGTH];
-    int8_t id;
-    int retval = 0;
+	char fileName[FILENAME_LENGTH];
+	char path[PREFIX_LENGTH + FILENAME_LENGTH];
+	char name[AQUADUINO_STRING_LENGTH];
+	int8_t id;
+	int retval = 0;
 
-    memset(path, 0, PREFIX_LENGTH + FILENAME_LENGTH);
+	memset(path, 0, PREFIX_LENGTH + FILENAME_LENGTH);
 
-    id = __aquaduino->getSensorID(sensor);
-    fileName[0] = 'S';
-    itoa(id, &fileName[1], 10);
-    strcat(fileName, ".cfg");
+	id = __aquaduino->getSensorID(sensor);
+	fileName[0] = 'S';
+	itoa(id, &fileName[1], 10);
+	strcat(fileName, ".cfg");
 
-    strcat(path, m_folder);
-    strcat(path, "/");
-    strcat(path, fileName);
+	strcat(path, m_folder);
+	strcat(path, "/");
+	strcat(path, fileName);
 
-    Serial.print(F("Reading sensor config from "));
-    Serial.print(path);
-    Serial.println(F(" ..."));
+	Serial.print(F("Reading sensor config from "));
+	Serial.print(path);
+	Serial.println(F(" ..."));
 
-    if (SD.exists(path))
-	{
-    	Serial.print(" File exists! Deserializing...");
+	if (SD.exists(path)) {
+		Serial.print(" File exists! Deserializing...");
 		configFile = SD.open(path, FILE_READ);
 		configFile.read(name, AQUADUINO_STRING_LENGTH);
 		sensor->setName(name);
@@ -354,12 +330,110 @@ uint16_t SDConfigManager::readConfig(Sensor* sensor)
 		else
 			Serial.println(F(" Failed!"));
 		configFile.close();
-	}
-	else
-	{
+	} else {
 		Serial.println(" File does not exist!");
 		retval = 1;
 	}
 
-    return retval;
+	return retval;
+}
+uint16_t SDConfigManager::readOpHours(Aquaduino* aquaduino) {
+	File configFile;
+	char path[PREFIX_LENGTH + FILENAME_LENGTH];
+	int retval = 0;
+
+	memset(path, 0, PREFIX_LENGTH + FILENAME_LENGTH);
+
+	strcat(path, m_folder);
+	strcat(path, "/");
+	strcat(path, "oph.cfg");
+
+	if (SD.exists(path)) {
+		configFile = SD.open(path, FILE_READ);
+		Actuator* actuator;
+		uint32_t val1;
+		uint32_t val2;
+		uint8_t num = configFile.read();
+		for (int8_t i = 0; i < num; i++) {
+
+			actuator = aquaduino->getActuator(configFile.read());
+			configFile.readBytes((char*) &val1,4);
+			configFile.readBytes((char*) &val2,4);
+			if (actuator) {
+				actuator->setOperatingTime(val1);
+				actuator->setLastResetOperatingTime(val2);
+				//Serial.println();
+				//Serial.println(actuator->getOperatingTime());
+				//Serial.println(actuator->getLastResetOperatingTime());
+			}
+		}
+		configFile.close();
+	} else {
+		retval = 1;
+	}
+
+	return retval;
+}
+uint16_t SDConfigManager::writeOpTime(Aquaduino* aquaduino) {
+	File configFile;
+	char fileName[FILENAME_LENGTH];
+	char path[PREFIX_LENGTH + FILENAME_LENGTH];
+	int8_t id;
+	int retval = 0;
+
+	memset(path, 0, PREFIX_LENGTH + FILENAME_LENGTH);
+
+	strcat(path, m_folder);
+	strcat(path, "/");
+	strcat(path, "oph.cfg");
+
+	Serial.print(F("Writing operating hours config to "));
+	Serial.print(path);
+	Serial.println(F(" ..."));
+
+//	Serial.println("Serializing...");
+	if (SD.exists(path))
+		SD.remove(path);
+	configFile = SD.open(path, FILE_WRITE);
+	uint32_t val;
+
+	Actuator* actuator;
+
+	configFile.write(__aquaduino->getNrOfActuators());
+	__aquaduino->resetActuatorIterator();
+	while (__aquaduino->getNextActuator(&actuator) != -1) {
+		id = __aquaduino->getActuatorID(actuator);
+		configFile.write(id);
+		//Serial.print(id);
+		//Serial.print(" : ");
+		actuator = __aquaduino->getActuator(id);
+		val = actuator->getOperatingTime();
+		//Serial.println(val);
+		writeUint32(configFile,val);
+		val = actuator->getLastResetOperatingTime();
+		writeUint32(configFile,val);
+
+
+
+	}
+//	Serial.println("done");
+	configFile.close();
+
+	return retval;
+}
+void SDConfigManager::writeUint32(File stream,uint32_t value) {
+	uint32_t swapped ;
+	swapped = ((value>>24)&0xff) | ((value<<8)&0xff0000) | ((value>>8)&0xff00) |   ((value<<24)&0xff000000);
+
+	stream.write((swapped >> 24) & 0xFF);
+	stream.write((swapped >> 16) & 0xFF);
+	stream.write((swapped >> 8) & 0xFF);
+	stream.write(swapped & 0xFF);
+
+}
+uint32_t SDConfigManager::readUint32(File stream){
+	uint32_t value;
+
+	return value;
+
 }

@@ -35,6 +35,8 @@ public:
 	// void addValue (int8_t sourceId,int8_t channel, int8_t type, int32_t value, int32_t timestamp);
 
 	uint32_t getSize();
+
+	uint8_t timeOffset;
 };
 
 

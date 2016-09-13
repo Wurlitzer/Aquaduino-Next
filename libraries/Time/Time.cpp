@@ -150,7 +150,7 @@ static  const uint8_t monthDays[]={31,28,31,30,31,30,31,31,30,31,30,31}; // API 
 void breakTime(time_t timeInput, tmElements_t &tm){
 // break the given time_t into time components
 // this is a more compact version of the C library localtime function
-// note that year is offset from 1970 !!!
+// note that year is offset from 1970 !
 
   uint8_t year;
   uint8_t month, monthLength;

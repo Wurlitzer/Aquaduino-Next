@@ -53,6 +53,10 @@ protected:
     int8_t m_ControlledBy;
     int8_t m_locked;
 
+    uint32_t m_opTime;
+    uint32_t m_startTime;
+    uint32_t m_opResetTime;
+
     virtual ~Actuator();
 
 public:
@@ -60,6 +64,13 @@ public:
 
     void setController(int8_t controller);
     int8_t getController();
+
+    void setOperatingTime(uint32_t seconds);
+    void setLastResetOperatingTime(uint32_t seconds);
+    virtual uint32_t getOperatingTime();
+    void resetOperatingTime();
+    virtual uint32_t getLastResetOperatingTime();
+
 
     virtual void lock();
     virtual void unlock();
